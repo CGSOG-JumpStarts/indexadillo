@@ -1,0 +1,15 @@
+name: indexadillo
+metadata:
+  template: indexadillo@0.0.1-beta
+services:
+  indexadillo-func:
+    project: ./src
+    language: python
+    host: function
+hooks:
+  postdeploy:
+    posix:
+      shell: sh
+      run: ./scripts/postdeploy.sh
+      interactive: true
+      continueOnError: false

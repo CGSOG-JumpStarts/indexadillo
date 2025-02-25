@@ -1,0 +1,18 @@
+meta {
+  name: Index
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/index
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "prefix_list": [""],
+    "index_name": "index-test-local-4"
+  }
+}

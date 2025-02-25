@@ -1,0 +1,21 @@
+meta {
+  name: Status ID
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/api/status/:id?show_history=True
+  body: none
+  auth: none
+}
+
+params:query {
+  show_history: True
+  ~show_input: True
+  ~show_history_output: True
+}
+
+params:path {
+  id: 0c32054e6d46461eacca10856bb96549
+}
