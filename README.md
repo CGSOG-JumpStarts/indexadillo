@@ -7,7 +7,7 @@
 
 ---
 
-Durable Indexing helps you push data to Azure AI Search in a scalable, observable way. Instead of using a pull-based DSL
+Indexadillo helps you push data to Azure AI Search in a scalable, observable way. Instead of using a pull-based DSL
 approach (which can be tricky to debug and customize), this solution uses Azure Durable Functions to handle everything from
 parsing your documents to uploading embeddings—without restarting at every little hiccup.
 
