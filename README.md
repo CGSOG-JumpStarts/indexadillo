@@ -1,11 +1,12 @@
 <div align='center'>
 <img src="assets/indexadillo.png" alt="Indexadillo Mascot" width="300" >
-
+   
 ### Indexadillo
 
 </div>
 
 ---
+[![Open in GitHub Codespaces](https://img.shields.io/static/v1?style=for-the-badge&label=GitHub+Codespaces&message=Open&color=blue&logo=github)](https://codespaces.new/Azure-Samples/indexadillo?quickstart=1)
 
 Indexadillo helps you push data to Azure AI Search in a scalable, observable way. Instead of using a pull-based DSL
 approach (which can be tricky to debug and customize), this solution uses Azure Durable Functions to handle everything from
@@ -32,7 +33,9 @@ parsing your documents to uploading embeddings—without restarting at every lit
    - **Tools:** Install [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) and
      [azd](https://github.com/azure/azure-dev).
       > Not needed for the dev container setup.
-   - **Dev Environment:** Kick things off with VS Code and the provided dev container.
+   - **Dev Environment:**
+      - Kick things off with VS Code and the provided dev container.
+      - Or use codespaces [![Open in GitHub Codespaces](https://img.shields.io/static/v1?style=for-the-badge&label=GitHub+Codespaces&message=Open&color=blue&logo=github)](https://codespaces.new/Azure-Samples/indexadillo?quickstart=1)
 
 2. **Deploy Your Infrastructure**
    - Create a new environment:
