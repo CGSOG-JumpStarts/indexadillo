@@ -97,9 +97,28 @@ parsing your documents to uploading embeddings—without restarting at every lit
 4. **Run the Debugger**  
    In the VS Code debug section, select and run the **Attach to Python Function** configuration.
 
-## State Management & Scalability
-- **Status Monitoring:** Each indexing run is tied to a sub-orchestrator. You can see exactly how far along it is, and if something fails, you can resume without starting over.  
-- **Parallel Processing:** Handle as many documents as you want in parallel (just adjust your function settings).  
+## Appendix: Resource Architecture
+
+Below is a diagram of the Azure resources that get deployed when you run `azd up`. Everything is organized under a single
+resource group:
+
+![Resource Diagram](assets/indexadillo-resources.png)
+
+- **Storage Account** (with `source` container): Where you drop PDFs to be processed.
+- **Event Grid**: Sends notifications to the function app whenever a new file is uploaded.
+- **Function App**: Hosts the Durable Functions that orchestrate parsing, embedding, indexing and serving the http endpoints.
+- **App Service Plan** (Flex Consumption Plan): Underlying hosting model for the Function App.
+- **Document Intelligence**: Extracts text from PDFs or other document types (if implemented).
+- **Azure OpenAI Embeddings**: Converts text to vector embeddings for advanced AI search.
+- **AI Search**: Stores and queries your indexed documents, with a default index out of the box.
+- **Application Insights**: Collects telemetry, logs, and performance metrics.
+
+Feel free to customize or rename these resources to suit your workflow. For more details on each service:
+- [Azure Cognitive Services Document Intelligence](https://learn.microsoft.com/azure/ai-services/document-intelligence/)
+- [Azure OpenAI Service](https://learn.microsoft.com/azure/cognitive-services/openai/)
+- [Azure AI Search](https://learn.microsoft.com/azure/search/search-what-is-azure-search)
+- [Application Insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview)
+
 
 ## Contributing
 Feel free to open issues or submit pull requests if you’d like to help out. All improvements are welcome—whether that’s more chunking strategies, extra integration tests, or better docs.
