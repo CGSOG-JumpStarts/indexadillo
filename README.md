@@ -1,3 +1,19 @@
+<!--
+---
+page_type: sample
+description: Indexadillo helps you push data to Azure AI Search in a scalable, observable way. Instead of using a pull-based DSL approach, this solution uses Azure Durable Functions to handle everything from parsing your documents to uploading embeddings.
+languages:
+- python
+products:
+- ai-services
+- azure-app-service
+- azure-cognitive-search
+- azure-event-grid
+- azure-openai
+name: indexadillo
+urlFragment: template
+---
+-->
 <div align='center'>
 <img src="assets/indexadillo.png" alt="Indexadillo Mascot" width="300" >
    
