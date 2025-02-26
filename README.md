@@ -97,7 +97,7 @@ parsing your documents to uploading embeddings—without restarting at every lit
 4. **Run the Debugger**  
    In the VS Code debug section, select and run the **Attach to Python Function** configuration.
 
-## Appendix: Resource Architecture
+## Resource Architecture
 
 Below is a diagram of the Azure resources that get deployed when you run `azd up`. Everything is organized under a single
 resource group:
