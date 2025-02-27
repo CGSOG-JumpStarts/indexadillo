@@ -28,6 +28,7 @@ Indexadillo helps you push data to Azure AI Search in a scalable, observable way
 approach (which can be tricky to debug and customize), this solution uses Azure Durable Functions to handle everything from
 parsing your documents to uploading embeddings—without restarting at every little hiccup.
 
+![Demo of the deployed sample](assets/indexadillo_demo.gif)
 
 ## What’s Inside?
 
