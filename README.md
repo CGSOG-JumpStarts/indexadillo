@@ -10,13 +10,14 @@ products:
 - azure-cognitive-search
 - azure-event-grid
 - azure-openai
-name: indexadillo
+name: Indexadillo - Index your documents using Durable Functions and AI Search for RAG applications.
 urlFragment: template
 ---
 -->
+
 <div align='center'>
 <img src="assets/indexadillo.png" alt="Indexadillo Mascot" width="300" >
-   
+
 ### Indexadillo
 
 </div>
