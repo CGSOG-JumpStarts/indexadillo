@@ -108,7 +108,27 @@ parsing your documents to uploading embeddings—without restarting at every lit
 3. **Start Azurite Service**  
    Launch the Azurite service by using the **Azurite: Start** command from the VS Code command palette.
 
-4. **Run the Debugger**  
+4. **Set Up a Virtual Environment (if not using Dev Containers)**  
+   If you're not using a VS Code dev container, you need to manually set up a Python virtual environment:
+
+   ```sh
+   python3 -m venv src/.venv
+   ```
+
+   Then, activate it:
+
+   - **Linux/macOS:**
+     ```sh
+     source src/.venv/bin/activate
+     ```
+   - **Windows (PowerShell):**
+     ```powershell
+     src\.venv\Scripts\Activate
+     ```
+
+   Also, make sure you have the [Azure Functions Core Tools installed](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=linux%2Cisolated-process%2Cnode-v4%2Cpython-v2%2Chttp-trigger%2Ccontainer-apps&pivots=programming-language-python#install-the-azure-functions-core-tools).
+   
+6. **Run the Debugger**
    In the VS Code debug section, select and run the **Attach to Python Function** configuration.
 
 ## Resource Architecture
