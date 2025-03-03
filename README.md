@@ -15,14 +15,10 @@ urlFragment: template
 ---
 -->
 
-<div align='center'>
-<img src="assets/indexadillo.png" alt="Indexadillo Mascot" width="300" >
+![Indexadillo Mascot](assets/indexadillo.png)
 
-### Indexadillo
+# Indexadillo
 
-</div>
-
----
 [![Open in GitHub Codespaces](https://img.shields.io/static/v1?style=for-the-badge&label=GitHub+Codespaces&message=Open&color=blue&logo=github)](https://codespaces.new/Azure-Samples/indexadillo?quickstart=1)
 
 Indexadillo helps you push data to Azure AI Search in a scalable, observable way. Instead of using a pull-based DSL
