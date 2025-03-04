@@ -20,6 +20,7 @@ urlFragment: template
 # Indexadillo
 
 [![Open in GitHub Codespaces](https://img.shields.io/static/v1?style=for-the-badge&label=GitHub+Codespaces&message=Open&color=blue&logo=github)](https://codespaces.new/Azure-Samples/indexadillo?quickstart=1)
+[![.github/workflows/azure-dev.yml](https://github.com/Azure-Samples/indexadillo/actions/workflows/azure-dev.yml/badge.svg)](https://github.com/Azure-Samples/indexadillo/actions/workflows/azure-dev.yml)
 
 Indexadillo helps you push data to Azure AI Search in a scalable, observable way. Instead of using a pull-based DSL
 approach (which can be tricky to debug and customize), this solution uses Azure Durable Functions to handle everything from
