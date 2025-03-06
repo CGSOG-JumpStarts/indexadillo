@@ -223,7 +223,7 @@ async def add_documents(documents: dict) -> List[str]:
         ), AzureOpenAIEmbeddingConfig(
             open_ai_dimensions=3072,
             open_ai_deployment="embedding",
-            open_ai_model_name="text-embedding-3-small",
+            open_ai_model_name="text-embedding-3-large",
             open_ai_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
         )
     )
@@ -240,7 +240,7 @@ async def ensure_index_exists(name: str) -> List[str]:
         ), AzureOpenAIEmbeddingConfig(
             open_ai_dimensions=3072,
             open_ai_deployment="embedding",
-            open_ai_model_name="text-embedding-3-small",
+            open_ai_model_name="text-embedding-3-large",
             open_ai_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
         )
     )
