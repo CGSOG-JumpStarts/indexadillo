@@ -75,6 +75,10 @@ if ! $NO_PROMPT; then
 fi
 
 for role in "${roles[@]}"; do
+    echo "AZURE_PRINCIPAL_ID: $PRINCIPAL_ID"
+    echo "AZURE_CLIENT_ID: $AZURE_CLIENT_ID"
+    echo "AZURE_SUBSCRIPTION_ID: $AZURE_SUBSCRIPTION_ID"
+    echo "AZURE_RESOURCE_GROUP: $AZURE_RESOURCE_GROUP"
     if [ -z "$AZURE_CLIENT_ID" ]; then
         az role assignment create \
             --role "$role" \
@@ -82,6 +86,7 @@ for role in "${roles[@]}"; do
             --scope /subscriptions/"$AZURE_SUBSCRIPTION_ID"/resourceGroups/"$AZURE_RESOURCE_GROUP" \
             --assignee-principal-type User
     else
+        echo "Role sp assigned"
         az role assignment create \
             --role "$role" \
             --assignee-object-id $PRINCIPAL_ID \
