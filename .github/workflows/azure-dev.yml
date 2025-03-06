@@ -53,8 +53,7 @@ jobs:
         run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
       - name: Create a new environment
         run: |
-          azd env new `
-            test-${{ github.run_number }}-$Env:SHORT_SHA" `
+          azd env new "test-${{ github.run_number }}-$SHORT_SHA" `
             --location "$Env:AZURE_LOCATION" `
             --subscription "$Env:AZURE_SUBSCRIPTION_ID" `
             --no-prompt
