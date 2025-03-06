@@ -49,10 +49,12 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Add SHORT_SHA env property with commit short sha
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
       - name: Create a new environment
         run: |
           azd env new `
-            test-${{ github.run_number }}-${{ github.ref }} `
+            test-${{ github.run_number }}-$Env:SHORT_SHA" `
             --location "$Env:AZURE_LOCATION" `
             --subscription "$Env:AZURE_SUBSCRIPTION_ID" `
             --no-prompt
