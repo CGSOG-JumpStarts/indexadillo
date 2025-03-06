@@ -1,3 +1,4 @@
+#!/bin/bash
 output=$(azd env get-values)
 
 while IFS= read -r line; do
@@ -7,13 +8,34 @@ while IFS= read -r line; do
 done <<< "$output"
 
 echo "Environment variables set."
-export AZURE_PRINCIPAL_ID=$(az ad signed-in-user show | jq '.id' | sed 's/^\"//;s/\"$//')
-AZURE_USER_NAME=$(az ad signed-in-user show --query userPrincipalName -o tsv)
+
+# Use AZURE_PRINCIPAL_ID or AZURE_CLIENT_ID if available,
+# otherwise get the signed in user's principal ID.
+if [ -n "$AZURE_PRINCIPAL_ID" ]; then
+  PRINCIPAL_ID="$AZURE_PRINCIPAL_ID"
+elif [ -n "$AZURE_CLIENT_ID" ]; then
+  PRINCIPAL_ID="$AZURE_CLIENT_ID"
+else
+  PRINCIPAL_ID=$(az ad signed-in-user show --query id -o tsv)
+fi
+
+# Try to retrieve the display name assuming it's a user.
+AZURE_DISPLAY_NAME=$(az ad user show --id "$PRINCIPAL_ID" --query userPrincipalName -o tsv 2>/dev/null)
+# If that fails, try retrieving the service principal's display name.
+if [ -z "$AZURE_DISPLAY_NAME" ]; then
+  AZURE_DISPLAY_NAME=$(az ad sp show --id "$PRINCIPAL_ID" --query appDisplayName -o tsv 2>/dev/null)
+fi
+
+# Get the subscription name and set the subscription.
 AZURE_SUBSCRIPTION_NAME=$(az account show --query name -o tsv)
 az account set --subscription "$AZURE_SUBSCRIPTION_ID"
-echo "AZURE_PRINCIPAL_ID: $AZURE_PRINCIPAL_ID ($AZURE_USER_NAME)"
+
+echo "AZURE_PRINCIPAL_ID: $PRINCIPAL_ID ($AZURE_DISPLAY_NAME)"
 echo "AZURE_ENV_NAME: $AZURE_ENV_NAME"
 echo "AZURE_SUBSCRIPTION_ID: $AZURE_SUBSCRIPTION_ID ($AZURE_SUBSCRIPTION_NAME)"
+
+
+
 
 roles=(
     "8ebe5a00-799e-43f5-93ac-243d3dce84a7" # Search Index Data Contributor
@@ -38,9 +60,17 @@ read -p "Do you want to continue? (y/n): " choice
 [[ "$choice" =~ ^[Yy]$ ]] || exit 1
 
 for role in "${roles[@]}"; do
-    az role assignment create \
-        --role "$role" \
-        --assignee-object-id $AZURE_PRINCIPAL_ID \
-        --scope /subscriptions/"$AZURE_SUBSCRIPTION_ID"/resourceGroups/"$AZURE_RESOURCE_GROUP" \
-        --assignee-principal-type User # Switch to ServicePrincipal if running for the pipeline
+    if [ -z "$AZURE_CLIENT_ID" ]; then
+        az role assignment create \
+            --role "$role" \
+            --assignee-object-id $PRINCIPAL_ID \
+            --scope /subscriptions/"$AZURE_SUBSCRIPTION_ID"/resourceGroups/"$AZURE_RESOURCE_GROUP" \
+            --assignee-principal-type User
+    else
+        az role assignment create \
+            --role "$role" \
+            --assignee-object-id $PRINCIPAL_ID \
+            --scope /subscriptions/"$AZURE_SUBSCRIPTION_ID"/resourceGroups/"$AZURE_RESOURCE_GROUP" \
+            --assignee-principal-type ServicePrincipal
+    fi
 done
