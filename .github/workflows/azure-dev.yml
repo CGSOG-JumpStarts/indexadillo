@@ -59,7 +59,7 @@ jobs:
         run: azd deploy --no-prompt
 
       - name: Set roles for service principal
-        run: ./scripts/roles.sh
+        run: ./scripts/roles.sh --no-prompt
         env:
           AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       

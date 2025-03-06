@@ -7,6 +7,15 @@ while IFS= read -r line; do
   export "$name"="$value"
 done <<< "$output"
 
+
+NO_PROMPT=false
+for arg in "$@"; do
+    if [[ "$arg" == "--no-prompt" ]]; then
+        NO_PROMPT=true
+        break
+    fi
+done
+
 echo "Environment variables set."
 
 # Use AZURE_PRINCIPAL_ID or AZURE_CLIENT_ID if available,
@@ -30,10 +39,14 @@ fi
 AZURE_SUBSCRIPTION_NAME=$(az account show --query name -o tsv)
 az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 
+if [[ -z "$AZURE_DISPLAY_NAME" ]]; then
+    echo "Error: AZURE_DISPLAY_NAME is not set. Could not retrieve az information." >&2
+    exit 1
+fi
+
 echo "AZURE_PRINCIPAL_ID: $PRINCIPAL_ID ($AZURE_DISPLAY_NAME)"
 echo "AZURE_ENV_NAME: $AZURE_ENV_NAME"
 echo "AZURE_SUBSCRIPTION_ID: $AZURE_SUBSCRIPTION_ID ($AZURE_SUBSCRIPTION_NAME)"
-
 
 
 
@@ -56,8 +69,10 @@ fi
 
 echo "AZURE_RESOURCE_GROUP: $AZURE_RESOURCE_GROUP"
 
-read -p "Do you want to continue? (y/n): " choice
-[[ "$choice" =~ ^[Yy]$ ]] || exit 1
+if ! $NO_PROMPT; then
+    read -p "Do you want to continue? (y/n): " choice
+    [[ "$choice" =~ ^[Yy]$ ]] || exit 1
+fi
 
 for role in "${roles[@]}"; do
     if [ -z "$AZURE_CLIENT_ID" ]; then
