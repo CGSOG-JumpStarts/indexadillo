@@ -31,12 +31,12 @@ parsing your documents to uploading embeddings—without restarting at every lit
 
 ![A workflow diagram shows two data sources labeled “HTTP” and “BLOB” flowing into a “Documents” box. From there, four steps are repeated for each document: “Cracking,” “Chunking,” “Embedding,” and “Upload.” In the diagram, “Cracking” and “Chunking” are highlighted in green to indicate they have started, while “Embedding” and “Upload” are gray to show they haven’t begun yet. A small note above the arrow from “Chunking” to “Embedding” reads “for each document,” emphasizing that all steps happen for each file.](assets/workflow.png)
 
-- **Orchestrators and Activities:** Each document gets its own sub-orchestrator, so failures don't bring everything down.  
-- **Blob Storage Input:** Drop your PDFs into blob storage, and we’ll automatically pick them up.  
-- **Document Intelligence:** Extract text from documents before sending them on.  
-- **“Chonkie” for Chunking:** Break down big files into smaller pieces for easier processing.  
-- **OpenAI Text-003-Large Embeddings:** Transform your text into embeddings for full-text AI search.  
-- **Azure AI Search Upload:** All neatly sent to your search index.  
+- **Orchestrators and Activities:** Each document gets its own sub-orchestrator, so failures don't bring everything down.
+- **Blob Storage Input:** Drop your PDFs into blob storage, and we’ll automatically pick them up.
+- **Document Intelligence:** Extract text from documents before sending them on.
+- **“Chonkie” for Chunking:** Break down big files into smaller pieces for easier processing.
+- **OpenAI Text-003-Large Embeddings:** Transform your text into embeddings for full-text AI search.
+- **Azure AI Search Upload:** All neatly sent to your search index.
 - **Scalability:** Process documents in parallel without losing track, thanks to continuation tokens and Durable Functions’ built-in retries.
 
 ## Getting Started
