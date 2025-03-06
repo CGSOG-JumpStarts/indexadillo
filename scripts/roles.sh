@@ -21,9 +21,9 @@ echo "Environment variables set."
 # Use AZURE_PRINCIPAL_ID or AZURE_CLIENT_ID if available,
 # otherwise get the signed in user's principal ID.
 if [ -n "$AZURE_PRINCIPAL_ID" ]; then
-  PRINCIPAL_ID="$AZURE_PRINCIPAL_ID"
+  PRINCIPAL_ID=$(az ad user show --id "$AZURE_PRINCIPAL_ID" --query id -o tsv)
 elif [ -n "$AZURE_CLIENT_ID" ]; then
-  PRINCIPAL_ID="$AZURE_CLIENT_ID"
+  PRINCIPAL_ID=$(az ad sp show --id "$AZURE_CLIENT_ID" --query id -o tsv)
 else
   PRINCIPAL_ID=$(az ad signed-in-user show --query id -o tsv)
 fi
@@ -75,10 +75,6 @@ if ! $NO_PROMPT; then
 fi
 
 for role in "${roles[@]}"; do
-    echo "AZURE_PRINCIPAL_ID: $PRINCIPAL_ID"
-    echo "AZURE_CLIENT_ID: $AZURE_CLIENT_ID"
-    echo "AZURE_SUBSCRIPTION_ID: $AZURE_SUBSCRIPTION_ID"
-    echo "AZURE_RESOURCE_GROUP: $AZURE_RESOURCE_GROUP"
     if [ -z "$AZURE_CLIENT_ID" ]; then
         az role assignment create \
             --role "$role" \
@@ -86,7 +82,6 @@ for role in "${roles[@]}"; do
             --scope /subscriptions/"$AZURE_SUBSCRIPTION_ID"/resourceGroups/"$AZURE_RESOURCE_GROUP" \
             --assignee-principal-type User
     else
-        echo "Role sp assigned"
         az role assignment create \
             --role "$role" \
             --assignee-object-id $PRINCIPAL_ID \
