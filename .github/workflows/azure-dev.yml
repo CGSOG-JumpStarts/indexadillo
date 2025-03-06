@@ -51,8 +51,8 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       - name: Create a new environment
         run: |
-          azd env new `test-${{ github.run_number }}` --location $Env:AZURE_LOCATION --subscription $Env:AZURE_SUBSCRIPTION_ID --no-prompt
-          azd env select `test-${{ github.run_number }}`
+          azd env new test-${{ github.run_number }}-${{ github.sha }} --location $Env:AZURE_LOCATION --subscription $Env:AZURE_SUBSCRIPTION_ID --no-prompt
+          azd env select test-${{ github.run_number }}
 
       - name: Provision Infrastructure
         run: azd provision --no-prompt --no-state
