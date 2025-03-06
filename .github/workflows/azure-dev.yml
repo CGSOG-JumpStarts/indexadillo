@@ -29,7 +29,7 @@ jobs:
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
     steps:
       - name: Add AZURE_ENV_NAME env property with commit short sha
-        run: echo "AZURE_ENV_NAME=test`echo ${GITHUB_SHA} | cut -c1-8`-${{ github.run_number }}" >> $GITHUB_ENV
+        run: echo "AZURE_ENV_NAME=test-`echo ${GITHUB_SHA} | cut -c1-8`-${{ github.run_number }}" >> $GITHUB_ENV
       - name: Checkout
         uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -44,14 +44,14 @@ jobs:
             --federated-credential-provider "github" `
             --tenant-id "$Env:AZURE_TENANT_ID"
         shell: pwsh
+      - name: Provision Infrastructure
+        run: azd provision --no-prompt --no-state
       - name: Log in with Azure[az] (Federated Credentials)
         uses: azure/login@v2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      - name: Provision Infrastructure
-        run: azd provision --no-prompt --no-state
       - name: Deploy Application
         run: azd deploy --no-prompt
 
@@ -73,4 +73,7 @@ jobs:
       - name: Run end-to-end tests
         run: |
           python tests/e2e/test_e2e.py
+      - name: Remove infrastructure after test
+        if: always()
+        run: azd down --purge --force
 
