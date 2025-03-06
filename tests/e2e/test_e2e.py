@@ -2,7 +2,7 @@ import os
 import time
 import requests
 from azure.storage.blob import BlobServiceClient
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, AzureDeveloperCliCredential
 import pathlib
 import random
 import string
@@ -19,7 +19,7 @@ def test_e2e_document_indexing():
     # Upload a sample PDF file to blob storage.
     blob_name = "sample.pdf"
     pdf_path = f"{pathlib.Path(__file__).parent.resolve()}/{blob_name}"  # Ensure this file exists in your repo.
-    token_credential = DefaultAzureCredential()
+    token_credential = AzureDeveloperCliCredential()
 
     blob_service_client = BlobServiceClient(
         account_url=f"https://{source_storage_account}.blob.core.windows.net",
