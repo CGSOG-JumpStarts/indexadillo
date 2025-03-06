@@ -26,9 +26,10 @@ jobs:
       AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
     steps:
+      - name: Add AZURE_ENV_NAME env property with commit short sha
+        run: echo "AZURE_ENV_NAME=test`echo ${GITHUB_SHA} | cut -c1-8`-${{ github.run_number }" >> $GITHUB_ENV
       - name: Checkout
         uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,32 +37,19 @@ jobs:
           python-version: '3.10' 
       - name: Install azd
         uses: Azure/setup-azd@v2
-      - name: Log in with Azure (Federated Credentials)
+      - name: Log in with Azure[azd] (Federated Credentials)
         run: |
           azd auth login `
             --client-id "$Env:AZURE_CLIENT_ID" `
             --federated-credential-provider "github" `
             --tenant-id "$Env:AZURE_TENANT_ID"
         shell: pwsh
-      - name: Azure login
+      - name: Log in with Azure[az] (Federated Credentials)
         uses: azure/login@v2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      - name: Add SHORT_SHA env property with commit short sha
-        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
-      - name: Create a new environment
-        run: |
-          azd env new "test-${{ github.run_number }}-$SHORT_SHA" `
-            --location "$Env:AZURE_LOCATION" `
-            --subscription "$Env:AZURE_SUBSCRIPTION_ID" `
-            --no-prompt
-        shell: pwsh
-      - name: Select new environment
-        run: |
-          azd env select "test-${{ github.run_number }}-$SHORT_SHA"
-        shell: pwsh
 
       - name: Provision Infrastructure
         run: azd provision --no-prompt --no-state
