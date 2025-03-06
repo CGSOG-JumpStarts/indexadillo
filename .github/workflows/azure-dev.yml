@@ -58,11 +58,13 @@ jobs:
             --subscription "$Env:AZURE_SUBSCRIPTION_ID" `
             --no-prompt
         shell: pwsh
+      - name: Select new environment
+        run: |
+          azd env select "test-${{ github.run_number }}-$SHORT_SHA"
+        shell: pwsh
 
       - name: Provision Infrastructure
         run: azd provision --no-prompt --no-state
-        env:
-          AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
 
       - name: Deploy Application
         run: azd deploy --no-prompt
