@@ -27,7 +27,7 @@ module openAi 'br/public:avm/res/cognitive-services/account:0.7.2' = {
         name: 'embedding'
         model: {
           format: 'OpenAI'
-          name: 'text-embedding-3-large'
+          name: 'text-embedding-3-small'
           version: '1'
         }
         sku: {
