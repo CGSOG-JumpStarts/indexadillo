@@ -75,5 +75,5 @@ jobs:
 
       - name: Run end-to-end tests
         run: |
-          python -m pytest tests/e2e/test_e2e.py
+          python tests/e2e/test_e2e.py
 
