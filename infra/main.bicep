@@ -86,7 +86,7 @@ module appInsights 'core/application_insights/application_insights_service.bicep
   name: 'appInsights'
   scope: resourceGroup
   params: {
-    name: '${abbrs.insightsComponents}S${resourceToken}'
+    name: '${abbrs.insightsComponents}${resourceToken}'
     location: location
     tags: tags
   }
