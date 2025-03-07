@@ -69,6 +69,7 @@ def test_e2e_document_indexing():
         print(f"Status check {attempt+1}: {status}")
         if status not in ["Pending", "Running", "Completed"]:
             print(f"ERROR: Document indexing did not finish. Reason: {status_resp.json()}")
+            assert False, "Document indexing did not finish."
         if status == "Completed":
             print("Indexing completed successfully.")
             break
