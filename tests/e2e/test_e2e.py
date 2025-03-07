@@ -29,7 +29,7 @@ def test_e2e_document_indexing():
         for attempt in range(30):
             try:
                 print(f"Connecting to Azure Blob Storage: {source_storage_account}")
-                token_credential = AzureDeveloperCliCredential()
+                token_credential = DefaultAzureCredential()
 
                 blob_service_client = BlobServiceClient(
                     account_url=f"https://{source_storage_account}.blob.core.windows.net",
