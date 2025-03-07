@@ -23,21 +23,21 @@ def test_e2e_document_indexing():
     # Upload a sample PDF file to blob storage.
     blob_name = "sample.pdf"
     pdf_path = f"{pathlib.Path(__file__).parent.resolve()}/{blob_name}"  # Ensure this file exists in your repo.
-    token_credential = AzureDeveloperCliCredential()
 
-    print(f"Connecting to Azure Blob Storage: {source_storage_account}")
-
-    blob_service_client = BlobServiceClient(
-        account_url=f"https://{source_storage_account}.blob.core.windows.net",
-        credential=token_credential
-    )
-
-    print(f"Uploading file {blob_name} to container {container_name}...")
 
     with open(pdf_path, "rb") as data:
         for attempt in range(30):
             try:
+                print(f"Connecting to Azure Blob Storage: {source_storage_account}")
+                token_credential = AzureDeveloperCliCredential()
+
+                blob_service_client = BlobServiceClient(
+                    account_url=f"https://{source_storage_account}.blob.core.windows.net",
+                    credential=token_credential
+                )
                 container_client = blob_service_client.get_container_client(container_name)
+
+                print(f"Uploading file {blob_name} to container {container_name}...")
                 container_client.upload_blob(name=blob_name, data=data, read_timeout=120, overwrite=True)
                 print("File uploaded successfully.")
                 break

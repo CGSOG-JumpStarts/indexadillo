@@ -59,6 +59,13 @@ jobs:
         run: ./scripts/roles.sh --no-prompt
         env:
           AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      - name: Refresh credentials after new assigned roles with Azure[azd] (Federated Credentials)
+        run: |
+          azd auth logout
+          azd auth login `
+            --client-id "$Env:AZURE_CLIENT_ID" `
+            --federated-credential-provider "github" `
+            --tenant-id "$Env:AZURE_TENANT_ID"
       
       - name: Set environment variables from azd
         run: |
