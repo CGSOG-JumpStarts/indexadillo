@@ -25,29 +25,30 @@ def test_e2e_document_indexing():
     pdf_path = f"{pathlib.Path(__file__).parent.resolve()}/{blob_name}"  # Ensure this file exists in your repo.
 
 
-    with open(pdf_path, "rb") as data:
-        for attempt in range(30):
-            try:
-                print(f"Connecting to Azure Blob Storage: {source_storage_account}")
-                token_credential = DefaultAzureCredential()
+    with open(pdf_path, "rb") as file:
+        file_content = file.read()
 
-                blob_service_client = BlobServiceClient(
-                    account_url=f"https://{source_storage_account}.blob.core.windows.net",
-                    credential=token_credential
-                )
-                container_client = blob_service_client.get_container_client(container_name)
+    for attempt in range(30):
+        try:
+            print(f"Connecting to Azure Blob Storage: {source_storage_account}")
+            token_credential = DefaultAzureCredential()
 
-                print(f"Uploading file {blob_name} to container {container_name}...")
-                container_client.upload_blob(name=blob_name, data=data, read_timeout=120, overwrite=True)
-                print("File uploaded successfully.")
-                break
-            except Exception as e:
-                print(f"Upload attempt {attempt+1} failed: {e}. Retrying in 5 seconds...")
-                time.sleep(5)
-        else:
-            print("ERROR: Document upload was not possible.")
-            assert False, "Document upload was not possible."
+            blob_service_client = BlobServiceClient(
+                account_url=f"https://{source_storage_account}.blob.core.windows.net",
+                credential=token_credential
+            )
+            container_client = blob_service_client.get_container_client(container_name)
 
+            print(f"Uploading file {blob_name} to container {container_name}...")
+            container_client.upload_blob(name=blob_name, data=file_content, read_timeout=120, overwrite=True)
+            print("File uploaded successfully.")
+            break
+        except Exception as e:
+            print(f"Upload attempt {attempt+1} failed: {e}. Retrying in 5 seconds...")
+            time.sleep(5)
+    else:
+        print("ERROR: Document upload was not possible.")
+        assert False, "Document upload was not possible."
     # Trigger document indexing via an HTTP call.
     print("Triggering document indexing...")
     response = requests.post(index_endpoint, json={
