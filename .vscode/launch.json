@@ -7,7 +7,7 @@
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
-      "envFile": "${workspaceFolder}/.azure/test-f1d6b231-29/.env"
+      "envFile": "${workspaceFolder}/.azure/test-e9581e0f-30/.env"
     },
     {
       "name": "Attach to Python Functions",

@@ -31,14 +31,14 @@ def test_e2e_document_indexing():
         account_url=f"https://{source_storage_account}.blob.core.windows.net",
         credential=token_credential
     )
-    container_client = blob_service_client.get_container_client(container_name)
 
     print(f"Uploading file {blob_name} to container {container_name}...")
 
     with open(pdf_path, "rb") as data:
         for attempt in range(30):
             try:
-                container_client.upload_blob(name=blob_name, data=data, overwrite=True)
+                container_client = blob_service_client.get_container_client(container_name)
+                container_client.upload_blob(name=blob_name, data=data, read_timeout=120, overwrite=True)
                 print("File uploaded successfully.")
                 break
             except Exception as e:
@@ -67,6 +67,8 @@ def test_e2e_document_indexing():
         status_resp.raise_for_status()
         status = status_resp.json().get('runtimeStatus')
         print(f"Status check {attempt+1}: {status}")
+        if status not in ["Pending", "Running", "Completed"]:
+            print(f"ERROR: Document indexing did not finish. Reason: {status_resp.json()}")
         if status == "Completed":
             print("Indexing completed successfully.")
             break
