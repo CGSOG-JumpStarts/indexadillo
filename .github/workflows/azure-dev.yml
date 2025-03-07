@@ -73,7 +73,7 @@ jobs:
       - name: Run end-to-end tests
         run: |
           python tests/e2e/test_e2e.py
-      - name: Remove infrastructure after test
-        if: always()
-        run: azd down --purge --force
+      #- name: Remove infrastructure after test
+      #  if: always()
+      #  run: azd down --purge --force
 
