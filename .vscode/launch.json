@@ -2,12 +2,12 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python Debugger: Current File",
+      "name": "Python Debugger: E2E Test",
       "type": "debugpy",
       "request": "launch",
-      "program": "${file}",
+      "program": "${workspaceFolder}/tests/e2e/test_e2e.py",
       "console": "integratedTerminal",
-      "envFile": "${workspaceFolder}/.azure/test-e9581e0f-30/.env"
+      "envFile": "${workspaceFolder}/.azure/indexadillo-dev/.env"
     },
     {
       "name": "Attach to Python Functions",
