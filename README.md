@@ -1,9 +1,6 @@
-<div align='center'>
-<img src="assets/indexadillo.png" alt="Indexadillo Mascot" width="300" >
+![A mascot showing an armadillo reading and sorting paper](assets/indexadillo.png)
 
 ### Indexadillo
-
-</div>
 
 ---
 
