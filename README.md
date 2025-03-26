@@ -15,7 +15,7 @@ urlFragment: template
 ---
 -->
 
-![Indexadillo Mascot](assets/indexadillo.png)
+![Indexadillo Mascot](assets/indexadillo-feature.png)
 
 # Indexadillo
 
