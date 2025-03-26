@@ -1,8 +1,6 @@
 ![A mascot showing an armadillo reading and sorting paper](assets/indexadillo.png)
 
-### Indexadillo
-
----
+# Indexadillo
 
 Indexadillo helps you push data to Azure AI Search in a scalable, observable way. Instead of using a pull-based DSL
 approach (which can be tricky to debug and customize), this solution uses Azure Durable Functions to handle everything from
