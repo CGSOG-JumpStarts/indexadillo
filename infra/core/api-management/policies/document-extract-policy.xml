@@ -1,0 +1,164 @@
+<policies>
+    <inbound>
+        <base />
+        
+        <!-- Increased timeout for document processing -->
+        <set-backend-service base-url="{{function-app-url}}" />
+        <rewrite-uri template="/api/v1/document/extract" />
+        
+        <!-- File size validation based on subscription tier -->
+        <choose>
+            <when condition="@(context.Request.Headers.ContainsKey("Content-Length"))">
+                <set-variable name="contentLength" value="@(int.Parse(context.Request.Headers["Content-Length"].First()))" />
+                <set-variable name="subscriptionTier" value="@{
+                    // Map subscription to tier - this would be more sophisticated in reality
+                    var subName = context.Subscription?.Name?.ToLower() ?? "free";
+                    if (subName.Contains("enterprise")) return "enterprise";
+                    if (subName.Contains("professional")) return "professional";  
+                    if (subName.Contains("developer") || subName.Contains("basic")) return "developer";
+                    return "free";
+                }" />
+                
+                <!-- Check file size limits based on tier -->
+                <choose>
+                    <when condition="@((string)context.Variables["subscriptionTier"] == "free" && (int)context.Variables["contentLength"] > 5242880)">
+                        <return-response>
+                            <set-status code="413" reason="Payload Too Large" />
+                            <set-header name="Content-Type" exists-action="override">
+                                <value>application/json</value>
+                            </set-header>
+                            <set-body>@{
+                                return new JObject(
+                                    new JProperty("error", "File size exceeds plan limit"),
+                                    new JProperty("code", "FILE_TOO_LARGE"),
+                                    new JProperty("maxSize", "5MB"),
+                                    new JProperty("plan", "free"),
+                                    new JProperty("message", "Upgrade to Developer plan for 25MB files")
+                                ).ToString();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                    <when condition="@((string)context.Variables["subscriptionTier"] == "developer" && (int)context.Variables["contentLength"] > 26214400)">
+                        <return-response>
+                            <set-status code="413" reason="Payload Too Large" />
+                            <set-header name="Content-Type" exists-action="override">
+                                <value>application/json</value>
+                            </set-header>
+                            <set-body>@{
+                                return new JObject(
+                                    new JProperty("error", "File size exceeds plan limit"),
+                                    new JProperty("code", "FILE_TOO_LARGE"),
+                                    new JProperty("maxSize", "25MB"),
+                                    new JProperty("plan", "developer"),
+                                    new JProperty("message", "Upgrade to Professional plan for 100MB files")
+                                ).ToString();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                    <when condition="@((string)context.Variables["subscriptionTier"] == "professional" && (int)context.Variables["contentLength"] > 104857600)">
+                        <return-response>
+                            <set-status code="413" reason="Payload Too Large" />
+                            <set-header name="Content-Type" exists-action="override">
+                                <value>application/json</value>
+                            </set-header>
+                            <set-body>@{
+                                return new JObject(
+                                    new JProperty("error", "File size exceeds plan limit"),
+                                    new JProperty("code", "FILE_TOO_LARGE"),
+                                    new JProperty("maxSize", "100MB"),
+                                    new JProperty("plan", "professional"),
+                                    new JProperty("message", "Contact us for Enterprise plan with larger file limits")
+                                ).ToString();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+            </when>
+        </choose>
+        
+        <!-- Content type validation -->
+        <choose>
+            <when condition="@(context.Request.Headers.ContainsKey("Content-Type"))">
+                <set-variable name="contentType" value="@(context.Request.Headers["Content-Type"].First())" />
+                <choose>
+                    <when condition="@(!((string)context.Variables["contentType"]).StartsWith("multipart/form-data") && !((string)context.Variables["contentType"]).StartsWith("application/json"))">
+                        <return-response>
+                            <set-status code="400" reason="Bad Request" />
+                            <set-header name="Content-Type" exists-action="override">
+                                <value>application/json</value>
+                            </set-header>
+                            <set-body>@{
+                                return new JObject(
+                                    new JProperty("error", "Invalid content type"),
+                                    new JProperty("code", "INVALID_CONTENT_TYPE"),
+                                    new JProperty("message", "Content-Type must be multipart/form-data for file uploads or application/json for URL processing")
+                                ).ToString();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+            </when>
+        </choose>
+        
+        <!-- Track document processing -->
+        <log-to-eventhub logger-id="eventhub-logger" partition-id="2">
+            @{
+                return new JObject(
+                    new JProperty("eventType", "documentProcessing"),
+                    new JProperty("timestamp", DateTime.UtcNow),
+                    new JProperty("userId", context.Variables["userId"]),
+                    new JProperty("subscriptionTier", context.Variables["subscriptionTier"]),
+                    new JProperty("contentLength", context.Variables.ContainsKey("contentLength") ? context.Variables["contentLength"] : 0),
+                    new JProperty("contentType", context.Variables.ContainsKey("contentType") ? context.Variables["contentType"] : "unknown")
+                ).ToString();
+            }
+        </log-to-eventhub>
+    </inbound>
+    
+    <backend>
+        <!-- Extended timeout for document processing -->
+        <forward-request timeout="300" />
+    </backend>
+    
+    <outbound>
+        <base />
+        
+        <!-- Track successful document processing -->
+        <choose>
+            <when condition="@(context.Response.StatusCode < 400)">
+                <log-to-eventhub logger-id="eventhub-logger" partition-id="2">
+                    @{
+                        var responseBody = context.Response.Body?.As<JObject>();
+                        return new JObject(
+                            new JProperty("eventType", "documentProcessed"),
+                            new JProperty("timestamp", DateTime.UtcNow),
+                            new JProperty("userId", context.Variables["userId"]),
+                            new JProperty("subscriptionTier", context.Variables["subscriptionTier"]),
+                            new JProperty("pageCount", responseBody?["page_count"] ?? 0),
+                            new JProperty("textLength", responseBody?["total_text_length"] ?? 0),
+                            new JProperty("processingTime", responseBody?["processing_time_ms"] ?? 0)
+                        ).ToString();
+                    }
+                </log-to-eventhub>
+            </when>
+        </choose>
+    </outbound>
+    
+    <on-error>
+        <base />
+        
+        <!-- Enhanced error tracking for document processing -->
+        <log-to-eventhub logger-id="eventhub-logger" partition-id="2">
+            @{
+                return new JObject(
+                    new JProperty("eventType", "documentProcessingError"),
+                    new JProperty("timestamp", DateTime.UtcNow),
+                    new JProperty("userId", context.Variables["userId"]),
+                    new JProperty("subscriptionTier", context.Variables["subscriptionTier"]),
+                    new JProperty("errorSource", context.LastError.Source),
+                    new JProperty("errorReason", context.LastError.Reason),
+                    new JProperty("statusCode", context.Response.StatusCode)
+                ).ToString();
+            }
+        </log-to-eventhub>
+    </on-error>
