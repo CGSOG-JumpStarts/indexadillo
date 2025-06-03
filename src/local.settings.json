@@ -1,0 +1,23 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
+    
+    "SOURCE_STORAGE_ACCOUNT_NAME": "stsourceabc123",
+    "DI_ENDPOINT": "https://cog-doc-int-abc123.cognitiveservices.azure.com/",
+    "AZURE_OPENAI_ENDPOINT": "https://cog-ai-abc123.openai.azure.com/",
+    "SEARCH_SERVICE_ENDPOINT": "https://srch-ai-abc123.search.windows.net/",
+    
+    "AZURE_CLIENT_ID": "your-managed-identity-client-id",
+    "APPINSIGHTS_INSTRUMENTATIONKEY": "your-app-insights-key",
+    
+    "BLOB_AMOUNT_PARALLEL": "20",
+    "SEARCH_INDEX_NAME": "default-index",
+    "BLOB_CONTAINER_NAME": "source",
+    
+    "COSMOS_ENDPOINT": "https://cosmos-abc123.documents.azure.com:443/",
+    "COSMOS_KEY": "your-cosmos-primary-key"
+  }
+}
