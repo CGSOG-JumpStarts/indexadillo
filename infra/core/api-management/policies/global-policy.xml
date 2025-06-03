@@ -1,0 +1,136 @@
+<policies>
+    <inbound>
+        <!-- Global rate limiting and security -->
+        <cors allow-credentials="false">
+            <allowed-origins>
+                <origin>*</origin>
+            </allowed-origins>
+            <allowed-methods>
+                <method>GET</method>
+                <method>POST</method>
+                <method>PUT</method>
+                <method>DELETE</method>
+                <method>OPTIONS</method>
+            </allowed-methods>
+            <allowed-headers>
+                <header>*</header>
+            </allowed-headers>
+        </cors>
+        
+        <!-- Security headers -->
+        <set-header name="X-Content-Type-Options" exists-action="override">
+            <value>nosniff</value>
+        </set-header>
+        <set-header name="X-Frame-Options" exists-action="override">
+            <value>DENY</value>
+        </set-header>
+        <set-header name="X-XSS-Protection" exists-action="override">
+            <value>1; mode=block</value>
+        </set-header>
+        <set-header name="Referrer-Policy" exists-action="override">
+            <value>strict-origin-when-cross-origin</value>
+        </set-header>
+        
+        <!-- Add request context -->
+        <set-variable name="requestId" value="@(Guid.NewGuid().ToString())" />
+        <set-variable name="timestamp" value="@(DateTime.UtcNow)" />
+        <set-variable name="clientIp" value="@(context.Request.IpAddress)" />
+        <set-variable name="userAgent" value="@(context.Request.Headers.GetValueOrDefault("User-Agent", "unknown"))" />
+        
+        <!-- Add tracking headers -->
+        <set-header name="X-Request-ID" exists-action="override">
+            <value>@((string)context.Variables["requestId"])</value>
+        </set-header>
+        
+        <!-- Log request -->
+        <log-to-eventhub logger-id="eventhub-logger" partition-id="0">
+            @{
+                return new JObject(
+                    new JProperty("eventType", "request"),
+                    new JProperty("timestamp", context.Variables["timestamp"]),
+                    new JProperty("requestId", context.Variables["requestId"]),
+                    new JProperty("operationName", context.Operation.Name),
+                    new JProperty("method", context.Request.Method),
+                    new JProperty("url", context.Request.Url.ToString()),
+                    new JProperty("clientIp", context.Variables["clientIp"]),
+                    new JProperty("userAgent", context.Variables["userAgent"]),
+                    new JProperty("subscriptionId", context.Subscription?.Id ?? "none"),
+                    new JProperty("productId", context.Product?.Id ?? "none")
+                ).ToString();
+            }
+        </log-to-eventhub>
+    </inbound>
+    
+    <backend>
+        <forward-request />
+    </backend>
+    
+    <outbound>
+        <!-- Add response headers -->
+        <set-header name="X-API-Version" exists-action="override">
+            <value>1.0.0</value>
+        </set-header>
+        <set-header name="X-Powered-By" exists-action="override">
+            <value>Indexadillo API Management</value>
+        </set-header>
+        
+        <!-- Calculate response time -->
+        <set-variable name="responseTime" value="@(DateTime.UtcNow.Subtract((DateTime)context.Variables["timestamp"]).TotalMilliseconds)" />
+        
+        <!-- Log response -->
+        <log-to-eventhub logger-id="eventhub-logger" partition-id="0">
+            @{
+                return new JObject(
+                    new JProperty("eventType", "response"),
+                    new JProperty("timestamp", DateTime.UtcNow),
+                    new JProperty("requestId", context.Variables["requestId"]),
+                    new JProperty("operationName", context.Operation.Name),
+                    new JProperty("statusCode", context.Response.StatusCode),
+                    new JProperty("responseTime", context.Variables["responseTime"]),
+                    new JProperty("subscriptionId", context.Subscription?.Id ?? "none")
+                ).ToString();
+            }
+        </log-to-eventhub>
+    </outbound>
+    
+    <on-error>
+        <!-- Error handling -->
+        <set-variable name="errorDetails" value="@{
+            return new JObject(
+                new JProperty("source", context.LastError.Source),
+                new JProperty("reason", context.LastError.Reason),
+                new JProperty("message", context.LastError.Message),
+                new JProperty("scope", context.LastError.Scope),
+                new JProperty("section", context.LastError.Section)
+            ).ToString();
+        }" />
+        
+        <!-- Log error -->
+        <log-to-eventhub logger-id="eventhub-logger" partition-id="0">
+            @{
+                return new JObject(
+                    new JProperty("eventType", "error"),
+                    new JProperty("timestamp", DateTime.UtcNow),
+                    new JProperty("requestId", context.Variables["requestId"]),
+                    new JProperty("operationName", context.Operation?.Name ?? "unknown"),
+                    new JProperty("error", JObject.Parse((string)context.Variables["errorDetails"]))
+                ).ToString();
+            }
+        </log-to-eventhub>
+        
+        <!-- Return structured error response -->
+        <return-response>
+            <set-status code="@(context.Response.StatusCode)" reason="@(context.Response.StatusReason)" />
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@{
+                return new JObject(
+                    new JProperty("error", "An error occurred while processing your request"),
+                    new JProperty("requestId", context.Variables["requestId"]),
+                    new JProperty("timestamp", DateTime.UtcNow.ToString("O"))
+                ).ToString();
+            }</set-body>
+        </return-response>
+    </on-error>
+</policies>
