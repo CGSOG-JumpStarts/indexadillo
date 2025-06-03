@@ -3,8 +3,14 @@ targetScope = 'subscription'
 param environmentName string
 param location string
 
-var abbrs = loadJsonContent('./abbreviations.json')
+// APIM Configuration
+param enableApiManagement bool = false
+param apiManagementTier string = 'Developer'
+param publisherEmail string = 'admin@aijumpstarts.com'
+param publisherName string = 'aijumpstarts'
+param customDomainName string = ''
 
+var abbrs = loadJsonContent('./abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 
 var functionAppName = '${abbrs.webSitesFunctions}${resourceToken}'
@@ -12,13 +18,13 @@ var functionContainerName = 'app-package-${functionAppName}'
 
 var tags = { 'azd-env-name': environmentName }
 
-
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   location: location
   tags: tags
   name: '${abbrs.resourcesResourceGroups}${environmentName}'
 }
 
+// Existing infrastructure modules
 module userAssignedIdentity 'core/identity/user-assigned-identity.bicep' = {
   name: 'UserAssignedIdentity'
   scope: resourceGroup
@@ -33,12 +39,12 @@ var storages = [
   {
     name: 'sourceStorage'
     storageAccountName: '${abbrs.storageStorageAccounts}source${resourceToken}'
-    containerNames: [functionContainerName, 'source']
+    containerNames: [functionContainerName, 'source', 'api-temp']
   }
 ]
 
 module storage 'core/storage/storage-account.bicep' = [
-  for storage in  storages:{
+  for storage in storages: {
     name: storage.name
     scope: resourceGroup
     params: {
@@ -92,34 +98,40 @@ module appInsights 'core/application_insights/application_insights_service.bicep
   }
 }
 
-// API Management if enabled
-module apiManagement 'core/api-management/apim.bicep' = if (enableApiManagement) {
-  name: 'apiManagement'
+// Cosmos DB for API user management (only if APIM is enabled)
+module cosmosDb 'core/database/cosmos-db.bicep' = if (enableApiManagement) {
+  name: 'cosmosDb'
   scope: resourceGroup
   params: {
-    name: '${abbrs.apiManagementService}${resourceToken}'
+    name: '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
     location: location
     tags: tags
-    tier: apiTier
-    functionAppName: flexFunction.outputs.name
-    functionAppKey: flexFunction.outputs.functionKey
-    eventHubConnectionString: eventHub.outputs.connectionString
+    databases: [
+      {
+        name: 'indexadillo_api'
+        containers: [
+          { name: 'api_users', partitionKey: '/id' }
+          { name: 'api_usage', partitionKey: '/user_id' }
+          { name: 'api_keys', partitionKey: '/key_hash' }
+        ]
+      }
+    ]
   }
 }
 
-// Application Gateway for custom domain and SSL
-module applicationGateway 'core/networking/app-gateway.bicep' = if (enableApiManagement) {
-  name: 'applicationGateway'
+// Event Hub for APIM logging (only if APIM is enabled)
+module eventHub 'core/messaging/event-hub.bicep' = if (enableApiManagement) {
+  name: 'eventHub'
   scope: resourceGroup
   params: {
-    name: '${abbrs.networkApplicationGateways}${resourceToken}'
+    namespaceName: '${abbrs.eventHubNamespaces}${resourceToken}'
+    eventHubName: 'api-logs'
     location: location
     tags: tags
-    backendFqdn: enableApiManagement ? apiManagement.outputs.gatewayUrl : flexFunction.outputs.functionAppUrl
   }
 }
 
-module flexFunction 'core/host/function-api.bicep' = {
+module flexFunction 'core/host/function.bicep' = {
   name: 'functionapp'
   scope: resourceGroup
   params: {
@@ -139,10 +151,40 @@ module flexFunction 'core/host/function-api.bicep' = {
     diEndpoint: documentIntelligence.outputs.endpoint
     openAIEndpoint: openAI.outputs.endpoint
     searchServiceName: searchService.outputs.name
-    cosmosEndpoint: cosmosDb.outputs.endpoint
-    cosmosKey: cosmosDb.outputs.primaryKey
-    eventHubConnectionString: eventHub.outputs.connectionString
+    // Add APIM-related settings
+    cosmosEndpoint: enableApiManagement ? cosmosDb.outputs.endpoint : ''
+    cosmosKey: enableApiManagement ? cosmosDb.outputs.primaryKey : ''
+    eventHubConnectionString: enableApiManagement ? eventHub.outputs.connectionString : ''
   }
+}
+
+// Get function app key for APIM backend configuration
+resource functionApp 'Microsoft.Web/sites@2023-12-01' existing = {
+  name: functionAppName
+  scope: resourceGroup
+}
+
+// API Management (optional)
+module apiManagement 'core/api-management/apim.bicep' = if (enableApiManagement) {
+  name: 'apiManagement'
+  scope: resourceGroup
+  params: {
+    name: '${abbrs.apiManagementService}${resourceToken}'
+    location: location
+    tags: tags
+    tier: apiManagementTier
+    publisherEmail: publisherEmail
+    publisherName: publisherName
+    functionAppName: functionAppName
+    functionAppKey: listkeys('${flexFunction.outputs.id}/host/default', '2023-12-01').functionKeys.default
+    eventHubConnectionString: enableApiManagement ? eventHub.outputs.connectionString : ''
+    customDomainName: customDomainName
+    enableAppInsights: true
+    appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
+  }
+  dependsOn: [
+    flexFunction
+  ]
 }
 
 module eventgrid 'core/integration/eventgrid.bicep' = {
@@ -156,16 +198,21 @@ module eventgrid 'core/integration/eventgrid.bicep' = {
   }
 }
 
+// Outputs
 output SOURCE_STORAGE_ACCOUNT_NAME string = storage[0].outputs.storageAccountName
-
 output RESOURCE_GROUP_NAME string = resourceGroup.name
 output SYSTEM_TOPIC_NAME string = eventgrid.outputs.systemTopicName
-// output FUNCTION_APP_NAME string = functionAppName
+output FUNCTION_APP_NAME string = functionAppName
 output DI_ENDPOINT string = documentIntelligence.outputs.endpoint
 output AZURE_OPENAI_ENDPOINT string = openAI.outputs.endpoint
 output SEARCH_SERVICE_ENDPOINT string = searchService.outputs.endpoint
-output API_ENDPOINT string = enableApiManagement ? apiManagement.outputs.gatewayUrl : flexFunction.outputs.functionAppUrl
-output COSMOS_ENDPOINT string = cosmosDb.outputs.endpoint
-output EVENT_HUB_NAMESPACE string = eventHub.outputs.namespaceName
+
+// APIM outputs (conditional)
 output API_MANAGEMENT_NAME string = enableApiManagement ? apiManagement.outputs.name : ''
-output FUNCTION_APP_NAME string = flexFunction.outputs.name
+output API_GATEWAY_URL string = enableApiManagement ? apiManagement.outputs.gatewayUrl : ''
+output API_DEVELOPER_PORTAL_URL string = enableApiManagement ? apiManagement.outputs.developerPortalUrl : ''
+output API_MANAGEMENT_URL string = enableApiManagement ? apiManagement.outputs.managementUrl : ''
+
+// Cosmos DB outputs (conditional)
+output COSMOS_ENDPOINT string = enableApiManagement ? cosmosDb.outputs.endpoint : ''
+output EVENT_HUB_NAMESPACE string = enableApiManagement ? eventHub.outputs.namespaceName : ''
