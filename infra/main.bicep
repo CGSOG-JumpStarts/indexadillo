@@ -92,7 +92,34 @@ module appInsights 'core/application_insights/application_insights_service.bicep
   }
 }
 
-module flexFunction 'core/host/function.bicep' = {
+// API Management if enabled
+module apiManagement 'core/api-management/apim.bicep' = if (enableApiManagement) {
+  name: 'apiManagement'
+  scope: resourceGroup
+  params: {
+    name: '${abbrs.apiManagementService}${resourceToken}'
+    location: location
+    tags: tags
+    tier: apiTier
+    functionAppName: flexFunction.outputs.name
+    functionAppKey: flexFunction.outputs.functionKey
+    eventHubConnectionString: eventHub.outputs.connectionString
+  }
+}
+
+// Application Gateway for custom domain and SSL
+module applicationGateway 'core/networking/app-gateway.bicep' = if (enableApiManagement) {
+  name: 'applicationGateway'
+  scope: resourceGroup
+  params: {
+    name: '${abbrs.networkApplicationGateways}${resourceToken}'
+    location: location
+    tags: tags
+    backendFqdn: enableApiManagement ? apiManagement.outputs.gatewayUrl : flexFunction.outputs.functionAppUrl
+  }
+}
+
+module flexFunction 'core/host/function-api.bicep' = {
   name: 'functionapp'
   scope: resourceGroup
   params: {
@@ -112,6 +139,9 @@ module flexFunction 'core/host/function.bicep' = {
     diEndpoint: documentIntelligence.outputs.endpoint
     openAIEndpoint: openAI.outputs.endpoint
     searchServiceName: searchService.outputs.name
+    cosmosEndpoint: cosmosDb.outputs.endpoint
+    cosmosKey: cosmosDb.outputs.primaryKey
+    eventHubConnectionString: eventHub.outputs.connectionString
   }
 }
 
@@ -130,7 +160,12 @@ output SOURCE_STORAGE_ACCOUNT_NAME string = storage[0].outputs.storageAccountNam
 
 output RESOURCE_GROUP_NAME string = resourceGroup.name
 output SYSTEM_TOPIC_NAME string = eventgrid.outputs.systemTopicName
-output FUNCTION_APP_NAME string = functionAppName
+// output FUNCTION_APP_NAME string = functionAppName
 output DI_ENDPOINT string = documentIntelligence.outputs.endpoint
 output AZURE_OPENAI_ENDPOINT string = openAI.outputs.endpoint
 output SEARCH_SERVICE_ENDPOINT string = searchService.outputs.endpoint
+output API_ENDPOINT string = enableApiManagement ? apiManagement.outputs.gatewayUrl : flexFunction.outputs.functionAppUrl
+output COSMOS_ENDPOINT string = cosmosDb.outputs.endpoint
+output EVENT_HUB_NAMESPACE string = eventHub.outputs.namespaceName
+output API_MANAGEMENT_NAME string = enableApiManagement ? apiManagement.outputs.name : ''
+output FUNCTION_APP_NAME string = flexFunction.outputs.name
