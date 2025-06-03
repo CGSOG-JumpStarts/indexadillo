@@ -72,11 +72,7 @@ fi
 # Deploy infrastructure with APIM enabled
 echo "🏗️ Deploying infrastructure with API Management..."
 
-# Use the updated main template
-cp infra/main.bicep infra/main-backup.bicep
-cp infra/main-with-apim.bicep infra/main.bicep
-
-# Update parameters
+# Update parameters to enable APIM
 cat > infra/main.parameters.json << EOF
 {
     "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
@@ -110,9 +106,6 @@ EOF
 # Deploy with azd
 echo "📦 Running azd provision..."
 azd provision --no-prompt
-
-# Restore original main template
-mv infra/main-backup.bicep infra/main.bicep
 
 # Get deployment outputs
 echo "📊 Getting deployment information..."
