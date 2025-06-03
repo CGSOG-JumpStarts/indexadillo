@@ -1,0 +1,60 @@
+# Azure Static Web Apps configuration
+
+{
+  "routes": [
+    {
+      "route": "/openapi.yaml",
+      "headers": {
+        "Content-Type": "application/x-yaml",
+        "Cache-Control": "public, max-age=3600"
+      }
+    },
+    {
+      "route": "/openapi.json", 
+      "rewrite": "/openapi.yaml",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "route": "/swagger",
+      "redirect": "/",
+      "statusCode": 301
+    },
+    {
+      "route": "/api-docs",
+      "redirect": "/", 
+      "statusCode": 301
+    },
+    {
+      "route": "/docs",
+      "redirect": "/",
+      "statusCode": 301
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/openapi.yaml",
+      "/openapi.json",
+      "/*.{css,js,png,jpg,gif,ico,svg,woff,woff2,ttf,eot}"
+    ]
+  },
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/index.html",
+      "statusCode": 200
+    }
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+  },
+  "mimeTypes": {
+    ".yaml": "application/x-yaml",
+    ".yml": "application/x-yaml"
+  }
+}
