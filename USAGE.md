@@ -169,22 +169,54 @@ azd auth login
 azd up
 ```
 
-### **Environment Configuration**
-Key environment variables you'll need:
-- `SOURCE_STORAGE_ACCOUNT_NAME` - Where documents are stored
-- `SEARCH_SERVICE_ENDPOINT` - Azure AI Search endpoint
-- `AZURE_OPENAI_ENDPOINT` - OpenAI service endpoint
-- `DI_ENDPOINT` - Document Intelligence endpoint
+## **Environment Configuration Reference**
 
-### **Custom Configuration**
-You can modify `defaults` in `function_app.py`:
-```python
-defaults = {
-    "BLOB_AMOUNT_PARALLEL": 20,  # Parallel processing limit
-    "SEARCH_INDEX_NAME": "my-custom-index",
-    "BLOB_CONTAINER_NAME": "documents"
-}
-```
+## Core Azure Function Settings
+
+| Variable | Purpose | How to Get |
+|----------|---------|------------|
+| `AzureWebJobsStorage` | Azure Functions runtime storage | Set to `"UseDevelopmentStorage=true"` for local dev |
+| `FUNCTIONS_WORKER_RUNTIME` | Function runtime | Always `"python"` |
+| `AzureWebJobsFeatureFlags` | Enable worker indexing | Always `"EnableWorkerIndexing"` |
+
+## Azure Service Endpoints
+
+| Variable | Purpose | How to Get |
+|----------|---------|------------|
+| `SOURCE_STORAGE_ACCOUNT_NAME` | Storage account for documents | From Azure portal or `azd env get-values` |
+| `DI_ENDPOINT` | Document Intelligence service | From Azure portal → Document Intelligence → Keys and Endpoint |
+| `AZURE_OPENAI_ENDPOINT` | OpenAI service for embeddings | From Azure portal → OpenAI → Keys and Endpoint |
+| `SEARCH_SERVICE_ENDPOINT` | AI Search service | From Azure portal → Search Service → Overview |
+
+## Authentication & Identity
+
+| Variable | Purpose | How to Get |
+|----------|---------|------------|
+| `AZURE_CLIENT_ID` | Managed identity client ID | From deployment output or Azure portal |
+| `APPINSIGHTS_INSTRUMENTATIONKEY` | Application monitoring | From Azure portal → Application Insights → Properties |
+
+## Application Configuration
+
+| Variable | Purpose | Default | Description |
+|----------|---------|---------|-------------|
+| `BLOB_AMOUNT_PARALLEL` | Parallel processing limit | `"20"` | How many documents to process simultaneously |
+| `SEARCH_INDEX_NAME` | Default search index | `"default-index"` | Name of the search index to use |
+| `BLOB_CONTAINER_NAME` | Source container | `"source"` | Container name for document uploads |
+
+## API Service Settings (Optional)
+
+| Variable | Purpose | How to Get |
+|----------|---------|------------|
+| `COSMOS_ENDPOINT` | User management database | From Azure portal → Cosmos DB → Keys |
+| `COSMOS_KEY` | Cosmos DB access key | From Azure portal → Cosmos DB → Keys |
+
+## Development-Only Settings
+
+| Variable | Purpose | Local Development |
+|----------|---------|-------------------|
+| `AZURE_TENANT_ID` | Azure tenant | From `az account show` |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription | From `az account show` |
+| `AZURE_PRINCIPAL_ID` | Your user principal ID | From deployment or `az ad signed-in-user show` |
 
 ## Benefits for Existing Applications
 
