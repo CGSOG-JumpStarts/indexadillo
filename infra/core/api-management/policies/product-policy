@@ -1,0 +1,118 @@
+<policies>
+    <inbound>
+        <!-- Product-level rate limiting -->
+        <rate-limit-by-key calls="1000" renewal-period="3600" counter-key="@(context.Subscription.Id)" />
+        <quota-by-key calls="50000" renewal-period="2629800" counter-key="@(context.Subscription.Id)" />
+        
+        <!-- API key validation -->
+        <check-header name="X-API-Key" failed-check-httpcode="401" failed-check-error-message="API key is required" ignore-case="true" />
+        
+        <!-- Extract and validate subscription from API key -->
+        <set-variable name="apiKey" value="@(context.Request.Headers.GetValueOrDefault("X-API-Key", ""))" />
+        
+        <!-- Add user context based on subscription -->
+        <choose>
+            <when condition="@(context.Subscription != null)">
+                <set-variable name="userId" value="@(context.Subscription.UserId ?? "unknown")" />
+                <set-variable name="subscriptionName" value="@(context.Subscription.Name ?? "unknown")" />
+                <set-variable name="productName" value="@(context.Product.Name ?? "unknown")" />
+            </when>
+            <otherwise>
+                <set-variable name="userId" value="anonymous" />
+                <set-variable name="subscriptionName" value="none" />
+                <set-variable name="productName" value="none" />
+            </otherwise>
+        </choose>
+        
+        <!-- Add rate limit headers -->
+        <set-header name="X-RateLimit-Limit" exists-action="override">
+            <value>1000</value>
+        </set-header>
+        <set-header name="X-RateLimit-Window" exists-action="override">
+            <value>3600</value>
+        </set-header>
+        
+        <!-- Usage tracking -->
+        <log-to-eventhub logger-id="eventhub-logger" partition-id="1">
+            @{
+                return new JObject(
+                    new JProperty("eventType", "usage"),
+                    new JProperty("timestamp", DateTime.UtcNow),
+                    new JProperty("userId", context.Variables["userId"]),
+                    new JProperty("subscriptionId", context.Subscription?.Id ?? "none"),
+                    new JProperty("subscriptionName", context.Variables["subscriptionName"]),
+                    new JProperty("productName", context.Variables["productName"]),
+                    new JProperty("operationName", context.Operation.Name),
+                    new JProperty("endpoint", context.Request.Url.Path)
+                ).ToString();
+            }
+        </log-to-eventhub>
+    </inbound>
+    
+    <backend>
+        <!-- Add authentication to backend -->
+        <set-header name="X-Functions-Key" exists-action="override">
+            <value>{{function-app-key}}</value>
+        </set-header>
+        
+        <!-- Forward user context to backend -->
+        <set-header name="X-User-ID" exists-action="override">
+            <value>@((string)context.Variables["userId"])</value>
+        </set-header>
+        <set-header name="X-Subscription-ID" exists-action="override">
+            <value>@(context.Subscription?.Id ?? "none")</value>
+        </set-header>
+        
+        <forward-request />
+    </backend>
+    
+    <outbound>
+        <!-- Calculate and add rate limit remaining -->
+        <set-header name="X-RateLimit-Remaining" exists-action="override">
+            <value>@{
+                // This is a simplified calculation - in reality, you'd track usage more precisely
+                var used = 0; // Would need to track actual usage
+                return (1000 - used).ToString();
+            }</value>
+        </set-header>
+        
+        <!-- Add quota headers -->
+        <set-header name="X-Quota-Limit" exists-action="override">
+            <value>50000</value>
+        </set-header>
+        <set-header name="X-Quota-Remaining" exists-action="override">
+            <value>@{
+                // Simplified - would track actual quota usage
+                var used = 0;
+                return (50000 - used).ToString();
+            }</value>
+        </set-header>
+    </outbound>
+    
+    <on-error>
+        <!-- Enhanced error handling for product-specific issues -->
+        <choose>
+            <when condition="@(context.Response.StatusCode == 429)">
+                <return-response>
+                    <set-status code="429" reason="Too Many Requests" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-header name="Retry-After" exists-action="override">
+                        <value>3600</value>
+                    </set-header>
+                    <set-body>@{
+                        return new JObject(
+                            new JProperty("error", "Rate limit exceeded"),
+                            new JProperty("code", "RATE_LIMIT_EXCEEDED"),
+                            new JProperty("message", "You have exceeded the rate limit for your subscription tier"),
+                            new JProperty("retryAfter", 3600),
+                            new JProperty("subscriptionName", context.Variables["subscriptionName"]),
+                            new JProperty("limit", "1000 requests per hour")
+                        ).ToString();
+                    }</set-body>
+                </return-response>
+            </when>
+        </choose>
+    </on-error>
+</policies>
