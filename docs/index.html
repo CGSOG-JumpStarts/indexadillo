@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indexadillo API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.10.3/swagger-ui.css" />
+    <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5.10.3/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5.10.3/favicon-16x16.png" sizes="16x16" />
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+
+        body {
+            margin: 0;
+            background: #fafafa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* Custom styling for Indexadillo branding */
+        .topbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-bottom: 3px solid #5a67d8;
+        }
+
+        .topbar .download-url-wrapper {
+            display: none;
+        }
+
+        .swagger-ui .topbar .link {
+            color: white;
+            font-weight: bold;
+            font-size: 1.5em;
+        }
+
+        .swagger-ui .info .title {
+            color: #667eea;
+            font-size: 2.5em;
+        }
+
+        .swagger-ui .info .description {
+            margin: 20px 0;
+            color: #374151;
+        }
+
+        .swagger-ui .scheme-container {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        /* Custom tag colors */
+        .swagger-ui .opblock.opblock-post .opblock-summary {
+            border-color: #10b981;
+        }
+
+        .swagger-ui .opblock.opblock-get .opblock-summary {
+            border-color: #3b82f6;
+        }
+
+        .swagger-ui .opblock.opblock-post {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: #10b981;
+        }
+
+        .swagger-ui .opblock.opblock-get {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+        }
+
+        /* Try it out button styling */
+        .swagger-ui .btn.execute {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+
+        .swagger-ui .btn.execute:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+            border-color: #5a67d8;
+        }
+
+        /* Response styling */
+        .swagger-ui .responses-inner h4, .swagger-ui .responses-inner h5 {
+            color: #374151;
+        }
+
+        /* Header banner */
+        .header-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 0;
+        }
+
+        .header-banner h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .header-banner p {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .quick-links {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .quick-links a {
+            display: inline-block;
+            margin: 0 15px;
+            padding: 8px 16px;
+            background: #f3f4f6;
+            color: #374151;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .quick-links a:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Footer */
+        .api-footer {
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+            padding: 30px;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .api-footer h3 {
+            color: #374151;
+            margin-bottom: 15px;
+        }
+
+        .api-footer p {
+            color: #6b7280;
+            margin: 5px 0;
+        }
+
+        .api-footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .api-footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Custom Header -->
+    <div class="header-banner">
+        <h1>🦎 Indexadillo API</h1>
+        <p>Scalable Document Processing for RAG Applications</p>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="quick-links">
+        <a href="#tag/Document-Processing">📄 Document Processing</a>
+        <a href="#tag/Pipeline">🔄 Complete Pipeline</a>
+        <a href="#tag/AI-Processing">🧠 AI Embeddings</a>
+        <a href="#tag/Search">🔍 Search</a>
+        <a href="https://aijumpstarts.com/dashboard" target="_blank">🔑 Get API Key</a>
+        <a href="https://docs.aijumpstarts.com" target="_blank">📚 Full Docs</a>
+    </div>
+
+    <!-- Swagger UI Container -->
+    <div id="swagger-ui"></div>
+
+    <!-- Custom Footer -->
+    <div class="api-footer">
+        <h3>Need Help?</h3>
+        <p>📧 Email: <a href="mailto:support@aijumpstarts.com">support@aijumpstarts.com</a></p>
+        <p>💬 Discord: <a href="https://discord.gg/indexadillo" target="_blank">Join our community</a></p>
+        <p>📖 Documentation: <a href="https://docs.aijumpstarts.com" target="_blank">docs.aijumpstarts.com</a></p>
+        <p>🚀 Dashboard: <a href="https://aijumpstarts.com/dashboard" target="_blank">Manage your API keys</a></p>
+        
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+            <p style="font-size: 0.9em;">
+                Made with ❤️ by the Jump Start team • 
+                <a href="https://aijumpstarts.com/terms" target="_blank">Terms</a> • 
+                <a href="https://aijumpstarts.com/privacy" target="_blank">Privacy</a> • 
+                <a href="https://status.aijumpstarts.com" target="_blank">Status</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.3/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.3/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            // Begin Swagger UI call region
+            const ui = SwaggerUIBundle({
+                url: './openapi.yaml', // Path to your OpenAPI spec
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                validatorUrl: null, // Disable validator
+                tryItOutEnabled: true,
+                filter: true,
+                displayOperationId: false,
+                displayRequestDuration: true,
+                docExpansion: "list", // "list", "full", "none"
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                showExtensions: true,
+                showCommonExtensions: true,
+                onComplete: function() {
+                    // Custom JavaScript after Swagger UI loads
+                    console.log("Indexadillo API Documentation loaded successfully!");
+                    
+                    // Add custom behavior
+                    addCustomBehavior();
+                },
+                requestInterceptor: function(request) {
+                    // Add custom headers or modify requests
+                    if (request.url.includes('/api/v1/')) {
+                        // Add user agent for API calls from docs
+                        request.headers['User-Agent'] = 'IndexadilloAPIDocs/1.0';
+                    }
+                    return request;
+                },
+                responseInterceptor: function(response) {
+                    // Handle responses
+                    if (response.status === 401) {
+                        showApiKeyHelp();
+                    }
+                    return response;
+                }
+            });
+            // End Swagger UI call region
+
+            window.ui = ui;
+        };
+
+        function addCustomBehavior() {
+            // Add API key helper
+            const authSection = document.querySelector('.auth-wrapper');
+            if (authSection) {
+                const helpButton = document.createElement('button');
+                helpButton.innerHTML = '❓ Need an API Key?';
+                helpButton.style.cssText = `
+                    background: #667eea; 
+                    color: white; 
+                    border: none; 
+                    padding: 8px 16px; 
+                    margin-left: 10px; 
+                    border-radius: 4px; 
+                    cursor: pointer;
+                    font-size: 12px;
+                `;
+                helpButton.onclick = showApiKeyHelp;
+                authSection.appendChild(helpButton);
+            }
+
+            // Add copy buttons to code examples
+            addCopyButtons();
+        }
+
+        function showApiKeyHelp() {
+            const message = `
+🔑 To get your API key:
+
+1. Visit https://aijumpstarts.com/dashboard
+2. Sign up for a free account
+3. Copy your API key
+4. Click "Authorize" above and paste it
+
+For local testing, you can use: dev_test_key
+            `;
+            alert(message);
+        }
+
+        function addCopyButtons() {
+            // Add copy functionality to code blocks
+            const codeBlocks = document.querySelectorAll('pre code');
+            codeBlocks.forEach(block => {
+                const button = document.createElement('button');
+                button.innerHTML = '📋 Copy';
+                button.style.cssText = `
+                    position: absolute; 
+                    top: 5px; 
+                    right: 5px; 
+                    background: #374151; 
+                    color: white; 
+                    border: none; 
+                    padding: 4px 8px; 
+                    border-radius: 3px; 
+                    font-size: 11px; 
+                    cursor: pointer;
+                `;
+                button.onclick = () => {
+                    navigator.clipboard.writeText(block.textContent);
+                    button.innerHTML = '✅ Copied!';
+                    setTimeout(() => button.innerHTML = '📋 Copy', 2000);
+                };
+                
+                const container = block.parentElement;
+                container.style.position = 'relative';
+                container.appendChild(button);
+            });
+        }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+K or Cmd+K to focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.querySelector('.filter-container input');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }
+        });
+
+        // Add Google Analytics or other tracking
+        // gtag('config', 'GA_MEASUREMENT_ID');
+    </script>
+</body>
+</html>
