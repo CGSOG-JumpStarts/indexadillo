@@ -1,0 +1,1335 @@
+openapi: 3.0.3
+info:
+  title: Indexadillo Document Processing API
+  description: |
+    # Scalable Document Processing for RAG Applications
+    
+    Transform your documents into searchable, AI-ready content with our complete pipeline. Perfect for building Retrieval-Augmented Generation (RAG) applications, knowledge bases, and intelligent search systems.
+    
+    ## 🚀 What We Do
+    
+    - **📄 Document Processing**: Extract text from PDFs, DOCX, images using Azure Document Intelligence
+    - **✂️ Smart Chunking**: Break documents into optimized pieces with intelligent overlap
+    - **🧠 AI Embeddings**: Generate vector embeddings using OpenAI's latest models  
+    - **🔍 Semantic Search**: Index and search content with Azure AI Search
+    - **⚡ Complete Pipeline**: Process documents end-to-end or use individual services
+    
+    ## 🎯 Perfect For
+    
+    - **SaaS Applications** adding document search capabilities
+    - **Enterprise Knowledge Management** systems
+    - **Legal Document Processing** and analysis
+    - **Customer Support** with document-based answers
+    - **Research Platforms** making papers searchable
+    - **Any RAG Application** requiring document understanding
+    
+    ## 🔑 Getting Started
+    
+    1. **Sign up** for an API key at [indexadillo.ai](https://indexadillo.ai)
+    2. **Choose your plan** based on your volume needs
+    3. **Make your first request** to `/api/v1/document/extract`
+    4. **Explore the pipeline** with `/api/v1/pipeline/process`
+    5. **Integrate search** with `/api/v1/search`
+    
+    ## 📊 Rate Limits
+    
+    | Plan | Requests/Minute | Requests/Hour | File Size | Price |
+    |------|----------------|---------------|-----------|-------|
+    | **Free** | 10 | 100 | 5MB | $0/month |
+    | **Developer** | 100 | 2,000 | 25MB | $49/month |
+    | **Professional** | 1,000 | 50,000 | 100MB | $299/month |
+    | **Enterprise** | Custom | Custom | Custom | Custom |
+    
+    ## 🛠️ SDKs and Tools
+    
+    - **Python SDK**: `pip install indexadillo-python`
+    - **JavaScript SDK**: `npm install indexadillo-js`
+    - **Postman Collection**: [Download](https://docs.indexadillo.ai/postman)
+    - **Sample Apps**: [GitHub Examples](https://github.com/indexadillo/examples)
+    
+    ## 📞 Support
+    
+    - **Documentation**: [docs.indexadillo.ai](https://docs.indexadillo.ai)
+    - **Discord Community**: [Join us](https://discord.gg/indexadillo)
+    - **Email Support**: support@indexadillo.ai
+    - **Status Page**: [status.indexadillo.ai](https://status.indexadillo.ai)
+    
+  version: '1.0.0'
+  contact:
+    name: Indexadillo Support
+    email: support@indexadillo.ai
+    url: https://indexadillo.ai/support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://indexadillo.ai/terms
+
+servers:
+  - url: https://api.indexadillo.ai/v1
+    description: Production API
+  - url: https://api-staging.indexadillo.ai/v1  
+    description: Staging API
+  - url: http://localhost:7071/api/v1
+    description: Local Development
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /document/extract:
+    post:
+      summary: Extract text from documents
+      description: |
+        Extract structured text from PDF documents, images, and other file types using Azure Document Intelligence. 
+        
+        **✨ Features:**
+        - Supports 20+ file formats (PDF, DOCX, PNG, JPG, etc.)
+        - Preserves document structure and layout
+        - Extracts tables and form data
+        - OCR for scanned documents
+        - Returns page-by-page text breakdown
+        
+        **⏱️ Processing Time:** 
+        - Small files (< 1MB): 5-15 seconds
+        - Medium files (1-10MB): 15-60 seconds  
+        - Large files (10MB+): 1-3 minutes
+        
+        **📁 Supported Formats:**
+        PDF, PNG, JPG, JPEG, TIFF, BMP, DOCX, XLSX, PPTX, HTML
+        
+        **💡 Pro Tips:**
+        - Higher quality scans = better text extraction
+        - PDF text is faster than image OCR
+        - Use extract_tables=true for structured data
+      operationId: extractDocument
+      tags:
+        - Document Processing
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - document
+              properties:
+                document:
+                  type: string
+                  format: binary
+                  description: Document file to process
+                  example: (binary file data)
+                extract_tables:
+                  type: boolean
+                  default: true
+                  description: Extract table data as structured JSON
+                extract_forms:
+                  type: boolean  
+                  default: true
+                  description: Extract form fields and key-value pairs
+            examples:
+              pdf_upload:
+                summary: Upload PDF document
+                description: Upload a PDF file for text extraction
+              image_upload:
+                summary: Upload image document  
+                description: Upload an image file for OCR processing
+          application/json:
+            schema:
+              type: object
+              required:
+                - document_url
+              properties:
+                document_url:
+                  type: string
+                  format: uri
+                  description: Public URL to document file (must be accessible)
+                  example: "https://example.com/documents/contract.pdf"
+                filename:
+                  type: string
+                  description: Optional filename for reference
+                  example: "contract.pdf"
+                extract_tables:
+                  type: boolean
+                  default: true
+                extract_forms:
+                  type: boolean
+                  default: true
+            examples:
+              url_processing:
+                summary: Process document from URL
+                value:
+                  document_url: "https://example.com/sample.pdf"
+                  filename: "sample.pdf"
+                  extract_tables: true
+                  extract_forms: true
+      responses:
+        '200':
+          description: Document successfully processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentExtractionResponse'
+              examples:
+                successful_extraction:
+                  summary: Successful PDF extraction
+                  value:
+                    pages: 
+                      - "This is the content of page 1. It contains introduction text..."
+                      - "Page 2 content with more details about the document..."
+                      - "Final page with conclusions and references..."
+                    filename: "sample.pdf"
+                    page_count: 3
+                    total_text_length: 4523
+                    tables: []
+                    forms: []
+                    processing_time_ms: 2340
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          $ref: '#/components/responses/UnsupportedFormat'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /text/chunk:
+    post:
+      summary: Chunk text into smaller pieces
+      description: |
+        Break large text into smaller, overlapping chunks optimized for embedding and search. Uses intelligent sentence-aware chunking with customizable parameters.
+        
+        **🧠 Smart Features:**
+        - Preserves sentence boundaries when possible
+        - Customizable token limits and overlap
+        - Maintains context with intelligent splitting
+        - Returns detailed chunk metadata
+        - Optimized for OpenAI embedding models
+        
+        **⚙️ Best Practices:**
+        - **512 tokens**: Optimal for most embedding models
+        - **25% overlap**: Good balance of context and efficiency  
+        - **Sentence boundaries**: Prevents cutting off mid-sentence
+        - **Min sentences**: Ensures meaningful chunk size
+        
+        **📝 Use Cases:**
+        - Preparing text for embedding generation
+        - Breaking down large documents for processing
+        - Creating searchable content chunks
+        - Optimizing for specific AI model token limits
+      operationId: chunkText
+      tags:
+        - Text Processing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChunkingRequest'
+            examples:
+              basic_chunking:
+                summary: Basic text chunking
+                value:
+                  text: "This is a long document that needs to be split into smaller pieces for processing. Each piece should maintain context while being small enough for embedding models to handle effectively. The chunking process will respect sentence boundaries and provide overlap between chunks to maintain context."
+                  filename: "long_document.txt"
+                  chunk_size: 512
+                  chunk_overlap: 128
+              custom_parameters:
+                summary: Custom chunking parameters
+                value:
+                  text: "Custom text for processing with specific parameters..."
+                  chunk_size: 256
+                  chunk_overlap: 64
+                  min_sentences_per_chunk: 2
+      responses:
+        '200':
+          description: Text successfully chunked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChunkingResponse'
+              examples:
+                successful_chunking:
+                  summary: Successfully chunked text
+                  value:
+                    chunks:
+                      - text: "This is a long document that needs to be split into smaller pieces for processing. Each piece should maintain context while being small enough for embedding models."
+                        start_index: 0
+                        end_index: 147
+                        token_count: 32
+                        filename: "long_document.txt"
+                        url: ""
+                      - text: "Each piece should maintain context while being small enough for embedding models to handle effectively. The chunking process will respect sentence boundaries."
+                        start_index: 120
+                        end_index: 267
+                        token_count: 28
+                        filename: "long_document.txt"
+                        url: ""
+                    chunk_count: 2
+                    total_tokens: 60
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /embeddings/generate:
+    post:
+      summary: Generate embeddings for text
+      description: |
+        Convert text chunks into vector embeddings using OpenAI's text-embedding-3-large model. Returns 3072-dimensional vectors optimized for semantic search and similarity matching.
+        
+        **🤖 Model Details:**
+        - **Model**: text-embedding-3-large (latest OpenAI)
+        - **Dimensions**: 3072 (high precision)
+        - **Max tokens per text**: 8,191
+        - **Batch processing**: Up to 100 texts per request
+        - **Use case**: Semantic search, similarity, clustering
+        
+        **⚡ Performance:**
+        - Single text: ~200ms
+        - Batch of 10: ~500ms
+        - Batch of 100: ~2-3 seconds
+        
+        **💰 Pricing:**
+        Embeddings count towards your monthly token allowance. Approximately:
+        - 1 page of text ≈ 500 tokens
+        - 100 pages ≈ 50,000 tokens
+        
+        **🎯 Perfect For:**
+        - Semantic search systems
+        - Document similarity matching
+        - Content recommendation engines
+        - Clustering and classification
+        - RAG system knowledge bases
+      operationId: generateEmbeddings
+      tags:
+        - AI Processing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbeddingRequest'
+            examples:
+              single_text:
+                summary: Generate embedding for single text
+                value:
+                  texts: ["This is a sample text that needs to be converted into a vector embedding for semantic search."]
+                  filename: "sample.txt"
+              batch_processing:
+                summary: Batch processing multiple texts
+                value:
+                  texts: 
+                    - "First chunk of text from the document."
+                    - "Second chunk containing different information."
+                    - "Third chunk with conclusions and summary."
+                  filename: "document_chunks.txt"
+                  source_url: "https://example.com/document.pdf"
+      responses:
+        '200':
+          description: Embeddings successfully generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingResponse'
+              examples:
+                successful_embeddings:
+                  summary: Successfully generated embeddings
+                  value:
+                    embeddings:
+                      - text: "This is a sample text..."
+                        embedding: [0.0123, -0.0456, 0.0789, "...(3069 more values)"]
+                        dimensions: 3072
+                    model: "text-embedding-3-large"
+                    total_tokens: 24
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /pipeline/process:
+    post:
+      summary: Complete document processing pipeline
+      description: |
+        Process a document through the complete pipeline: extract text, chunk, generate embeddings, and index in Azure AI Search. This is an async operation that handles everything end-to-end.
+        
+        **🔄 Processing Stages:**
+        1. **Document Extraction** (30s-2min) - Extract text using Document Intelligence
+        2. **Smart Chunking** (5-10s) - Break text into optimized pieces
+        3. **Embedding Generation** (10-30s) - Create vector embeddings
+        4. **Search Indexing** (5-15s) - Upload to Azure AI Search
+        
+        **⏱️ Total Time:** 1-4 minutes depending on document size and complexity
+        
+        **📊 What You Get:**
+        - Fully searchable document in your search index
+        - Semantic search capabilities  
+        - Vector similarity matching
+        - Structured metadata and references
+        - Ready for RAG applications
+        
+        **🎯 Perfect For:**
+        - Building knowledge bases
+        - Customer support document search
+        - Legal document processing
+        - Research paper indexing
+        - Content management systems
+        
+        **💡 Pro Tips:**
+        - Use descriptive index names for organization
+        - Smaller chunks (256-512 tokens) work better for Q&A
+        - Larger chunks (1024+ tokens) better for document retrieval
+      operationId: processDocumentPipeline
+      tags:
+        - Pipeline
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - document
+              properties:
+                document:
+                  type: string
+                  format: binary
+                  description: Document file to process through pipeline
+                index_name:
+                  type: string
+                  default: "default-index"
+                  description: Target search index name (will be created if doesn't exist)
+                  pattern: '^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$'
+                  example: "company-docs-2024"
+                chunk_size:
+                  type: integer
+                  default: 512
+                  minimum: 100
+                  maximum: 2048
+                  description: Target chunk size in tokens
+                chunk_overlap:
+                  type: integer  
+                  default: 128
+                  minimum: 0
+                  maximum: 512
+                  description: Overlap between chunks in tokens
+            examples:
+              basic_pipeline:
+                summary: Basic document processing
+                description: Process document with default settings
+              custom_pipeline:
+                summary: Custom processing parameters
+                description: Process with custom chunking and index
+          application/json:
+            schema:
+              type: object
+              required:
+                - document_url
+              properties:
+                document_url:
+                  type: string
+                  format: uri
+                  description: Public URL to document file
+                  example: "https://example.com/documents/manual.pdf"
+                index_name:
+                  type: string
+                  default: "default-index"
+                  description: Target search index name
+                  example: "company-manuals"
+                chunk_size:
+                  type: integer
+                  default: 512
+                  minimum: 100
+                  maximum: 2048
+                chunk_overlap:
+                  type: integer
+                  default: 128
+                  minimum: 0
+                  maximum: 512
+            examples:
+              url_pipeline:
+                summary: Process document from URL
+                value:
+                  document_url: "https://example.com/user-manual.pdf"
+                  index_name: "user-manuals"
+                  chunk_size: 512
+                  chunk_overlap: 128
+      responses:
+        '202':
+          description: Processing started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStartResponse'
+              examples:
+                job_started:
+                  summary: Processing job started
+                  value:
+                    job_id: "doc_proc_abc123def456"
+                    status: "processing"
+                    status_url: "/api/v1/jobs/doc_proc_abc123def456"
+                    estimated_time: "2-5 minutes"
+                    index_name: "company-docs"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /jobs/{job_id}:
+    get:
+      summary: Check processing job status
+      description: |
+        Check the status of an async processing job. Use this endpoint to monitor long-running operations like document pipeline processing.
+        
+        **📊 Job Statuses:**
+        - **pending**: Job is queued and waiting to start
+        - **processing**: Job is currently running  
+        - **completed**: Job finished successfully
+        - **failed**: Job encountered an error
+        
+        **⏱️ Polling Recommendations:**
+        - Poll every 5-10 seconds for jobs under 2 minutes
+        - Poll every 30 seconds for longer jobs
+        - Stop polling after job completes or fails
+        
+        **🔔 Webhooks Available:**
+        Configure webhooks in your dashboard to get notified when jobs complete instead of polling.
+      operationId: getJobStatus
+      tags:
+        - Pipeline
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+          description: Unique job identifier returned when starting a job
+          example: "doc_proc_abc123def456"
+      responses:
+        '200':
+          description: Job status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatusResponse'
+              examples:
+                job_processing:
+                  summary: Job currently processing
+                  value:
+                    job_id: "doc_proc_abc123def456"
+                    status: "processing"
+                    created_time: "2024-01-15T10:30:00Z"
+                    last_updated: "2024-01-15T10:31:30Z"
+                    progress:
+                      current_stage: "embedding"
+                      stages_completed: 2
+                      total_stages: 4
+                job_completed:
+                  summary: Job completed successfully
+                  value:
+                    job_id: "doc_proc_abc123def456"
+                    status: "completed"
+                    created_time: "2024-01-15T10:30:00Z"
+                    last_updated: "2024-01-15T10:33:45Z"
+                    result: "Document successfully processed and indexed"
+                    progress:
+                      current_stage: "completed"
+                      stages_completed: 4
+                      total_stages: 4
+                job_failed:
+                  summary: Job failed with error
+                  value:
+                    job_id: "doc_proc_abc123def456"
+                    status: "failed"
+                    created_time: "2024-01-15T10:30:00Z"
+                    last_updated: "2024-01-15T10:31:15Z"
+                    error: "Document format not supported"
+        '404':
+          $ref: '#/components/responses/JobNotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /search:
+    get:
+      summary: Search indexed documents
+      description: |
+        Search through your indexed documents using semantic search powered by Azure AI Search. Supports both keyword and semantic queries with vector similarity matching.
+        
+        **🔍 Search Capabilities:**
+        - **Semantic Search**: Understanding meaning, not just keywords
+        - **Vector Similarity**: Find conceptually similar content
+        - **Hybrid Search**: Combines keyword and semantic approaches
+        - **Filtered Results**: Search within specific document types
+        - **Ranked Results**: ML-powered relevance scoring
+        
+        **💡 Search Tips:**
+        - Use natural language questions for best results
+        - Semantic search works better than exact keyword matching
+        - Try questions like "How do I reset my password?" vs "password reset"
+        - Use quotes for exact phrase matching
+        
+        **📊 Result Format:**
+        Each result includes the matched text chunk, source document reference, and relevance score.
+      operationId: searchDocuments
+      tags:
+        - Search
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 1000
+          description: Search query (supports natural language questions)
+          example: "How do I configure the API settings?"
+        - name: index_name
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "default-index"
+          description: Search index to query (defaults to user's default index)
+          example: "company-docs"
+        - name: top
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          description: Maximum number of results to return
+          example: 10
+        - name: filter
+          in: query
+          required: false
+          schema:
+            type: string
+          description: OData filter expression to limit results
+          example: "sourcefile eq 'manual.pdf'"
+      responses:
+        '200':
+          description: Search completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+              examples:
+                successful_search:
+                  summary: Successful search results
+                  value:
+                    results:
+                      - content: "To configure the API settings, navigate to the Settings panel and click on API Configuration. Enter your API key and endpoint URL..."
+                        sourcepages: "user_manual.pdf#pages=15"
+                        id: "file-user_manual_pdf-chunk-5"
+                        storageUrl: "https://storage.blob.core.windows.net/docs/user_manual.pdf"
+                        "@search.score": 0.95
+                      - content: "API settings can also be configured programmatically using the configuration endpoints. See the developer documentation for details..."
+                        sourcepages: "dev_guide.pdf#pages=23,24"
+                        id: "file-dev_guide_pdf-chunk-12"
+                        storageUrl: "https://storage.blob.core.windows.net/docs/dev_guide.pdf"
+                        "@search.score": 0.87
+                    query: "How do I configure the API settings?"
+                    index_name: "company-docs"
+                    total_results: 2
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/IndexNotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /info:
+    get:
+      summary: Get API information
+      description: |
+        Get basic information about the API, including version, available endpoints, and service status. No authentication required.
+      operationId: getApiInfo
+      tags:
+        - Utility
+      security: []  # No authentication required
+      responses:
+        '200':
+          description: API information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiInfoResponse'
+              examples:
+                api_info:
+                  summary: API information
+                  value:
+                    name: "Indexadillo Document Processing API"
+                    version: "1.0.0"
+                    description: "Scalable document processing API for RAG applications"
+                    endpoints:
+                      document_extract: "/api/v1/document/extract"
+                      text_chunk: "/api/v1/text/chunk"
+                      generate_embeddings: "/api/v1/embeddings/generate"
+                      pipeline_process: "/api/v1/pipeline/process"
+                      search: "/api/v1/search"
+                      job_status: "/api/v1/jobs/{job_id}"
+                    documentation: "https://docs.indexadillo.ai"
+                    support: "support@indexadillo.ai"
+
+  /health:
+    get:
+      summary: Health check
+      description: |
+        Check the health status of the API and its dependencies. Returns detailed status of all underlying services.
+        
+        **🟢 Healthy**: All services operational  
+        **🟡 Degraded**: Some services unavailable  
+        **🔴 Unhealthy**: Critical services down
+      operationId: healthCheck
+      tags:
+        - Utility
+      security: []  # No authentication required
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy_status:
+                  summary: All services healthy
+                  value:
+                    status: "healthy"
+                    timestamp: "2024-01-15T10:30:00Z"
+                    services:
+                      search: true
+                      openai: true
+                      document_intelligence: true
+                      storage: true
+        '503':
+          description: Service is unhealthy or degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                degraded_status:
+                  summary: Some services unavailable
+                  value:
+                    status: "degraded"
+                    timestamp: "2024-01-15T10:30:00Z"
+                    services:
+                      search: true
+                      openai: false
+                      document_intelligence: true
+                      storage: true
+                    error: "OpenAI service temporarily unavailable"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API key for authentication. Get yours at [indexadillo.ai/dashboard](https://indexadillo.ai/dashboard)
+        
+        **Header Format:**
+        ```
+        X-API-Key: your_api_key_here
+        ```
+        
+        **Alternative (Bearer Token):**
+        ```
+        Authorization: Bearer your_api_key_here
+        ```
+
+  schemas:
+    DocumentExtractionResponse:
+      type: object
+      required:
+        - pages
+        - filename
+        - page_count
+        - total_text_length
+      properties:
+        pages:
+          type: array
+          items:
+            type: string
+          description: Extracted text from each page
+          example: ["Page 1 text content...", "Page 2 text content..."]
+        filename:
+          type: string
+          description: Original filename
+          example: "document.pdf"
+        page_count:
+          type: integer
+          description: Total number of pages processed
+          example: 5
+        total_text_length:
+          type: integer
+          description: Total character count across all pages
+          example: 15420
+        tables:
+          type: array
+          items:
+            type: object
+          description: Extracted table data (if requested)
+        forms:
+          type: array
+          items:
+            type: object
+          description: Extracted form fields (if requested)
+        processing_time_ms:
+          type: integer
+          description: Processing time in milliseconds
+          example: 3450
+
+    ChunkingRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: Text content to chunk
+          minLength: 1
+          maxLength: 1000000
+          example: "This is a long document that needs to be split into smaller pieces..."
+        filename:
+          type: string
+          description: Optional filename for reference
+          example: "document.txt"
+        source_url:
+          type: string
+          format: uri
+          description: Optional source URL
+        chunk_size:
+          type: integer
+          default: 512
+          minimum: 100
+          maximum: 2048
+          description: Target chunk size in tokens
+        chunk_overlap:
+          type: integer
+          default: 128
+          minimum: 0
+          maximum: 512
+          description: Overlap between chunks in tokens
+        min_sentences_per_chunk:
+          type: integer
+          default: 1
+          minimum: 1
+          description: Minimum sentences per chunk
+
+    ChunkingResponse:
+      type: object
+      required:
+        - chunks
+        - chunk_count
+        - total_tokens
+      properties:
+        chunks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TextChunk'
+          description: Array of text chunks with metadata
+        chunk_count:
+          type: integer
+          description: Total number of chunks created
+          example: 12
+        total_tokens:
+          type: integer
+          description: Total token count across all chunks
+          example: 5847
+
+    TextChunk:
+      type: object
+      required:
+        - text
+        - start_index
+        - end_index
+        - token_count
+      properties:
+        text:
+          type: string
+          description: The chunked text content
+        start_index:
+          type: integer
+          description: Starting character position in original text
+        end_index:
+          type: integer
+          description: Ending character position in original text
+        token_count:
+          type: integer
+          description: Number of tokens in this chunk
+        filename:
+          type: string
+          description: Source filename
+        url:
+          type: string
+          description: Source URL
+
+    EmbeddingRequest:
+      type: object
+      required:
+        - texts
+      properties:
+        texts:
+          type: array
+          items:
+            type: string
+          description: Array of text chunks to embed
+          minItems: 1
+          maxItems: 100
+          example: ["First chunk of text", "Second chunk of text"]
+        filename:
+          type: string
+          description: Optional filename for reference
+        source_url:
+          type: string
+          format: uri
+          description: Optional source URL
+
+    EmbeddingResponse:
+      type: object
+      required:
+        - embeddings
+        - model
+        - total_tokens
+      properties:
+        embeddings:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmbeddingResult'
+          description: Array of embedding results
+        model:
+          type: string
+          description: Model used for embeddings
+          example: "text-embedding-3-large"
+        total_tokens:
+          type: integer
+          description: Total tokens processed
+          example: 1247
+
+    EmbeddingResult:
+      type: object
+      required:
+        - text
+        - embedding
+        - dimensions
+      properties:
+        text:
+          type: string
+          description: Original text that was embedded
+        embedding:
+          type: array
+          items:
+            type: number
+          description: Vector embedding (3072 dimensions)
+          example: [0.0123, -0.0456, 0.0789]
+        dimensions:
+          type: integer
+          description: Number of dimensions in the embedding
+          example: 3072
+
+    JobStartResponse:
+      type: object
+      required:
+        - job_id
+        - status
+        - status_url
+        - estimated_time
+      properties:
+        job_id:
+          type: string
+          description: Unique identifier for the processing job
+          example: "doc_proc_abc123def456"
+        status:
+          type: string
+          enum: [processing]
+          description: Current job status
+        status_url:
+          type: string
+          description: URL to check job status
+          example: "/api/v1/jobs/doc_proc_abc123def456"
+        estimated_time:
+          type: string
+          description: Estimated processing time
+          example: "2-5 minutes"
+        index_name:
+          type: string
+          description: Target search index name
+          example: "company-docs"
+
+    JobStatusResponse:
+      type: object
+      required:
+        - job_id
+        - status
+      properties:
+        job_id:
+          type: string
+          description: Unique job identifier
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+          description: Current job status
+        created_time:
+          type: string
+          format: date-time
+          description: When the job was created
+        last_updated:
+          type: string
+          format: date-time
+          description: When the job status was last updated
+        result:
+          type: string
+          description: Success message when completed
+        error:
+          type: string
+          description: Error message when failed
+        progress:
+          $ref: '#/components/schemas/JobProgress'
+
+    JobProgress:
+      type: object
+      properties:
+        current_stage:
+          type: string
+          description: Current processing stage
+          example: "embedding"
+        stages_completed:
+          type: integer
+          description: Number of stages completed
+          example: 2
+        total_stages:
+          type: integer
+          description: Total number of stages
+          example: 4
+
+    SearchResponse:
+      type: object
+      required:
+        - results
+        - query
+        - total_results
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+          description: Array of search results
+        query:
+          type: string
+          description: Original search query
+        index_name:
+          type: string
+          description: Index that was searched
+        total_results:
+          type: integer
+          description: Number of results returned
+
+    SearchResult:
+      type: object
+      required:
+        - content
+        - id
+      properties:
+        content:
+          type: string
+          description: Matched text content
+        sourcepages:
+          type: string
+          description: Source document and page references
+          example: "document.pdf#pages=5,6"
+        id:
+          type: string
+          description: Unique result identifier
+        storageUrl:
+          type: string
+          format: uri
+          description: URL to source document
+        "@search.score":
+          type: number
+          format: float
+          description: Relevance score (0-1)
+          example: 0.95
+
+    ApiInfoResponse:
+      type: object
+      required:
+        - name
+        - version
+        - description
+        - endpoints
+      properties:
+        name:
+          type: string
+          description: API name
+        version:
+          type: string
+          description: API version
+        description:
+          type: string
+          description: API description
+        endpoints:
+          type: object
+          description: Available endpoints
+        documentation:
+          type: string
+          format: uri
+          description: Documentation URL
+        support:
+          type: string
+          format: email
+          description: Support email
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - services
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall health status
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp
+        services:
+          type: object
+          properties:
+            search:
+              type: boolean
+              description: Azure AI Search service status
+            openai:
+              type: boolean
+              description: OpenAI service status
+            document_intelligence:
+              type: boolean
+              description: Document Intelligence service status
+            storage:
+              type: boolean
+              description: Storage service status
+        error:
+          type: string
+          description: Error message if unhealthy
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - code
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Additional error details
+        details:
+          type: string
+          description: Technical error details
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters or request format
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missing_parameter:
+              summary: Missing required parameter
+              value:
+                error: "Text content required"
+                code: "MISSING_TEXT"
+                message: "The 'text' field is required for chunking operations"
+            invalid_format:
+              summary: Invalid file format
+              value:
+                error: "Invalid file format"
+                code: "INVALID_FORMAT"
+                message: "Supported formats: PDF, DOCX, PNG, JPG, TIFF, BMP"
+
+    Unauthorized:
+      description: Unauthorized - invalid or missing API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missing_api_key:
+              summary: Missing API key
+              value:
+                error: "API key required"
+                code: "MISSING_API_KEY"
+                message: "Include your API key in the X-API-Key header"
+            invalid_api_key:
+              summary: Invalid API key
+              value:
+                error: "Invalid API key"
+                code: "INVALID_API_KEY"
+                message: "The provided API key is not valid or has been deactivated"
+
+    PayloadTooLarge:
+      description: File size exceeds plan limit
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  max_size:
+                    type: string
+                    description: Maximum allowed file size for current plan
+                  plan:
+                    type: string
+                    description: Current user plan
+          examples:
+            file_too_large:
+              summary: File exceeds size limit
+              value:
+                error: "File size exceeds plan limit"
+                code: "FILE_TOO_LARGE"
+                max_size: "25MB"
+                plan: "developer"
+                message: "Upgrade to Professional plan for 100MB files"
+
+    UnsupportedFormat:
+      description: Unsupported file format
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            unsupported_format:
+              summary: File format not supported
+              value:
+                error: "Unsupported file format"
+                code: "UNSUPPORTED_FORMAT"
+                message: "Supported formats: PDF, DOCX, XLSX, PPTX, PNG, JPG, TIFF, BMP"
+
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  limit:
+                    type: integer
+                    description: Rate limit for current plan
+                  window:
+                    type: string
+                    description: Rate limit window (minute/hour)
+                  retry_after:
+                    type: integer
+                    description: Seconds to wait before retrying
+          examples:
+            rate_limit_minute:
+              summary: Per-minute rate limit exceeded
+              value:
+                error: "Per-minute rate limit exceeded"
+                code: "RATE_LIMIT_EXCEEDED"
+                limit: 100
+                window: "minute"
+                retry_after: 45
+                message: "You can make 100 requests per minute on the Developer plan"
+
+    JobNotFound:
+      description: Job not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            job_not_found:
+              summary: Job ID not found
+              value:
+                error: "Job not found"
+                code: "JOB_NOT_FOUND"
+                message: "No job found with the specified ID"
+
+    IndexNotFound:
+      description: Search index not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            index_not_found:
+              summary: Search index doesn't exist
+              value:
+                error: "Search index not found"
+                code: "INDEX_NOT_FOUND"
+                message: "The specified search index does not exist"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            server_error:
+              summary: Internal server error
+              value:
+                error: "Internal server error"
+                code: "INTERNAL_ERROR"
+                message: "An unexpected error occurred. Please try again later."
+
+tags:
+  - name: Document Processing
+    description: |
+      📄 Extract and process document content
+      
+      Transform PDFs, images, and office documents into structured text using Azure Document Intelligence. Perfect for digitizing scanned documents, extracting data from forms, and preparing content for further processing.
+  - name: Text Processing
+    description: |
+      ✂️ Text chunking and manipulation
+      
+      Break down large text into smaller, optimized pieces for embedding and search. Smart chunking preserves sentence boundaries and maintains context through configurable overlap.
+  - name: AI Processing
+    description: |
+      🧠 AI-powered text analysis and embeddings
+      
+      Convert text into high-dimensional vector embeddings using OpenAI's latest models. Essential for semantic search, similarity matching, and building RAG applications.
+  - name: Pipeline
+    description: |
+      🔄 Complete document processing workflows
+      
+      End-to-end document processing from raw files to searchable knowledge bases. Combines all services into a single, powerful pipeline with async processing and status monitoring.
+  - name: Search
+    description: |
+      🔍 Semantic search and retrieval
+      
+      Query your processed documents using natural language with semantic understanding. Powered by Azure AI Search with vector similarity and hybrid search capabilities.
+  - name: Utility
+    description: |
+      🛠️ API management and monitoring
+      
+      Health checks, API information, and service status endpoints for monitoring and integration.
