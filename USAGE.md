@@ -171,7 +171,7 @@ azd up
 
 ## **Environment Configuration Reference**
 
-## Core Azure Function Settings
+### Core Azure Function Settings
 
 | Variable | Purpose | How to Get |
 |----------|---------|------------|
@@ -179,7 +179,7 @@ azd up
 | `FUNCTIONS_WORKER_RUNTIME` | Function runtime | Always `"python"` |
 | `AzureWebJobsFeatureFlags` | Enable worker indexing | Always `"EnableWorkerIndexing"` |
 
-## Azure Service Endpoints
+### Azure Service Endpoints
 
 | Variable | Purpose | How to Get |
 |----------|---------|------------|
@@ -188,14 +188,14 @@ azd up
 | `AZURE_OPENAI_ENDPOINT` | OpenAI service for embeddings | From Azure portal → OpenAI → Keys and Endpoint |
 | `SEARCH_SERVICE_ENDPOINT` | AI Search service | From Azure portal → Search Service → Overview |
 
-## Authentication & Identity
+### Authentication & Identity
 
 | Variable | Purpose | How to Get |
 |----------|---------|------------|
 | `AZURE_CLIENT_ID` | Managed identity client ID | From deployment output or Azure portal |
 | `APPINSIGHTS_INSTRUMENTATIONKEY` | Application monitoring | From Azure portal → Application Insights → Properties |
 
-## Application Configuration
+### Application Configuration
 
 | Variable | Purpose | Default | Description |
 |----------|---------|---------|-------------|
@@ -203,14 +203,14 @@ azd up
 | `SEARCH_INDEX_NAME` | Default search index | `"default-index"` | Name of the search index to use |
 | `BLOB_CONTAINER_NAME` | Source container | `"source"` | Container name for document uploads |
 
-## API Service Settings (Optional)
+### API Service Settings (Optional)
 
 | Variable | Purpose | How to Get |
 |----------|---------|------------|
 | `COSMOS_ENDPOINT` | User management database | From Azure portal → Cosmos DB → Keys |
 | `COSMOS_KEY` | Cosmos DB access key | From Azure portal → Cosmos DB → Keys |
 
-## Development-Only Settings
+### Development-Only Settings
 
 | Variable | Purpose | Local Development |
 |----------|---------|-------------------|
