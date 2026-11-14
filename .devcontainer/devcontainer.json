@@ -1,9 +1,9 @@
 {
-    "name": "Azure Functions (Python 3)",
+    "name": "Indexadillo (Python 3.12)",
     "build": {
         "dockerfile": "Dockerfile",
         "args": {
-            "VARIANT": "3.10-bullseye"
+            "VARIANT": "3.12-bookworm"
         }
     },
     "features": {
@@ -13,7 +13,7 @@
           "installBicep": true
         },
         "ghcr.io/devcontainers/features/node:1": {
-            "version": "18",
+            "version": "22",
             "nodeGypDependencies": false
         }
     },
@@ -33,7 +33,6 @@
             ]
         } 
     },
-    "postCreateCommand": "python3 -m venv src/.venv",
-    "postAttachCommand": ". src/.venv/bin/activate",
+    "postCreateCommand": "python3 -m venv .venv && .venv/bin/python -m pip install -r requirements-dev.txt",
     "remoteUser": "vscode"
 }

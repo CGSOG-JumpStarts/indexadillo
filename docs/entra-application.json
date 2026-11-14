@@ -1,0 +1,30 @@
+{
+  "api": { "requestedAccessTokenVersion": 2 },
+  "appRoles": [
+    {
+      "allowedMemberTypes": ["User", "Application"],
+      "description": "Search documents within a configured source and index scope",
+      "displayName": "Indexadillo Reader",
+      "id": "a04cc8a7-5194-484f-b9cb-ffefba2759e1",
+      "isEnabled": true,
+      "value": "Indexadillo.Reader"
+    },
+    {
+      "allowedMemberTypes": ["User", "Application"],
+      "description": "Submit and inspect indexing jobs within a configured scope",
+      "displayName": "Indexadillo Indexer",
+      "id": "24184537-d388-4ba5-8d8f-72c0210c635f",
+      "isEnabled": true,
+      "value": "Indexadillo.Indexer"
+    },
+    {
+      "allowedMemberTypes": ["User", "Application"],
+      "description": "Operate ingestion and inspect protected orchestration history within a configured scope",
+      "displayName": "Indexadillo Operator",
+      "id": "7bda0c02-c920-4f88-a178-72ee084fe2d6",
+      "isEnabled": true,
+      "value": "Indexadillo.Operator"
+    }
+  ],
+  "groupMembershipClaims": "SecurityGroup"
+}

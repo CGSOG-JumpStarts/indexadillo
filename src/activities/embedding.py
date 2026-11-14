@@ -1,22 +1,43 @@
 from application.app import app
-import os
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from openai import AzureOpenAI
-from typing import List, Dict
+from core.activity import safe_activity
+from core.config import ProcessingProfile
+from core.models import cached_artifact, embed, embedding_batches
+from core.storage import store
+
 
 @app.function_name(name="embedding")
-@app.activity_trigger(input_name="chunks")
-def embedding(chunks: List[Dict]) -> List[Dict]:
-    endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
-    token_provider = get_bearer_token_provider(
-        DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+@app.activity_trigger(input_name="ref")
+@safe_activity
+def embedding(ref: dict) -> dict:
+    profile = ProcessingProfile.model_validate(ref["profile"])
+    storage = store()
+
+    def compute():
+        document = storage.read("artifacts", ref["artifact"])
+        if document is None:
+            raise ValueError("Chunk artifact is missing")
+        chunks = document["chunks"]
+        vectors = []
+        texts = [chunk.get("context", "") + "\n" + chunk["text"] for chunk in chunks]
+        for batch in embedding_batches(texts, profile.embedding, profile.chunking.encoding):
+
+            def compute_batch(batch=batch):
+                with storage.service_slot("embedding"):
+                    return {"vectors": embed(batch, profile)}
+
+            name = cached_artifact(
+                ref["tenant_id"],
+                "embedding-batches",
+                [profile.fingerprint("embedding"), batch],
+                compute_batch,
+            )
+            vectors.extend(storage.read("artifacts", name)["vectors"])
+        return {
+            **document,
+            "chunks": [{**chunk, "embedding": vector} for chunk, vector in zip(chunks, vectors, strict=True)],
+        }
+
+    artifact = cached_artifact(
+        ref["tenant_id"], "embeddings", [ref["artifact"], profile.fingerprint("embedding")], compute
     )
-    client = AzureOpenAI(
-        api_version="2024-02-15-preview",
-        azure_endpoint=endpoint,
-        azure_ad_token_provider=token_provider,
-    )
-    embeddings = client.embeddings.create(input = [chunk["text"] for chunk in chunks], model="embedding")
-    for i, chunk in enumerate(chunks):
-        chunk["embedding"] = embeddings.data[i].embedding 
-    return chunks
+    return {**ref, "artifact": artifact}

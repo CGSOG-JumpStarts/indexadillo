@@ -1,6 +1,6 @@
 name: indexadillo
 metadata:
-  template: indexadillo@0.0.1-beta
+  template: indexadillo@0.2.0
 services:
   indexadillo-func:
     project: ./src

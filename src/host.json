@@ -2,13 +2,41 @@
   "version": "2.0",
   "extensionBundle": {
     "id": "Microsoft.Azure.Functions.ExtensionBundle",
-    "version": "[4.*, 5.0.0)"
+    "version": "[4.32.0, 5.0.0)"
   },
   "extensions": {
     "durableTask": {
       "tracing": {
         "DistributedTracingEnabled": true,
-        "Version": "V2"
+        "Version": "V2",
+        "traceInputsAndOutputs": false
+      },
+      "hubName": "indexadillov2",
+      "maxConcurrentActivityFunctions": 8,
+      "maxConcurrentOrchestratorFunctions": 4
+    },
+    "queues": {
+      "batchSize": 4,
+      "newBatchThreshold": 2,
+      "maxDequeueCount": 5,
+      "visibilityTimeout": "00:01:00",
+      "messageEncoding": "none"
+    }
+  },
+  "functionTimeout": "00:30:00",
+  "logging": {
+    "logLevel": {
+      "default": "Warning",
+      "Function": "Information",
+      "indexadillo": "Information",
+      "azure": "Warning",
+      "httpx": "Warning",
+      "openai": "Warning"
+    },
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "excludedTypes": "Request;Exception"
       }
     }
   }

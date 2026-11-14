@@ -1,97 +1,105 @@
-import os
+"""Explicit live-Azure test. Never collected by the default offline suite."""
+
+import json
+import sys
 import time
-import requests
+import uuid
+from pathlib import Path
+
+import httpx
+from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
-from azure.identity import DefaultAzureCredential, AzureDeveloperCliCredential
-import pathlib
-import random
-import string
 
-def test_e2e_document_indexing():
-    print("Starting end-to-end document indexing test...")
-
-    # Retrieve necessary configuration from environment variables.
-    source_storage_account = os.environ["SOURCE_STORAGE_ACCOUNT_NAME"]
-    container_name = os.environ.get("BLOB_CONTAINER", "source")
-    index_endpoint = f"https://{os.environ['FUNCTION_APP_NAME']}.azurewebsites.net/api/index"
-    status_endpoint = f"https://{os.environ['FUNCTION_APP_NAME']}.azurewebsites.net/api/status"
-    search_endpoint = f"https://{os.environ['FUNCTION_APP_NAME']}.azurewebsites.net/api/search"
-    index_name = os.environ.get("TEST_INDEX_NAME", f"test-index-{''.join(random.choices(string.ascii_lowercase + string.digits, k=10))}")
-
-    print(f"Using index name: {index_name}")
-
-    # Upload a sample PDF file to blob storage.
-    blob_name = "sample.pdf"
-    pdf_path = f"{pathlib.Path(__file__).parent.resolve()}/{blob_name}"  # Ensure this file exists in your repo.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+from azd_env import load  # noqa: E402
 
 
-    with open(pdf_path, "rb") as file:
-        file_content = file.read()
-
-    for attempt in range(30):
-        try:
-            print(f"Connecting to Azure Blob Storage: {source_storage_account}")
-            token_credential = DefaultAzureCredential()
-
-            blob_service_client = BlobServiceClient(
-                account_url=f"https://{source_storage_account}.blob.core.windows.net",
-                credential=token_credential
-            )
-            container_client = blob_service_client.get_container_client(container_name)
-
-            print(f"Uploading file {blob_name} to container {container_name}...")
-            container_client.upload_blob(name=blob_name, data=file_content, read_timeout=120, overwrite=True)
-            print("File uploaded successfully.")
-            break
-        except Exception as e:
-            print(f"Upload attempt {attempt+1} failed: {e}. Retrying in 5 seconds...")
-            time.sleep(5)
-    else:
-        print("ERROR: Document upload was not possible.")
-        assert False, "Document upload was not possible."
-    # Trigger document indexing via an HTTP call.
-    print("Triggering document indexing...")
-    response = requests.post(index_endpoint, json={
-            "prefix_list": [""],
-            "index_name": index_name
-        })
-    response.raise_for_status()
-    status_id = response.text
-    assert status_id, "No statusId returned from the indexing endpoint."
-    print(f"Indexing started, received status ID: {status_id}")
-
-    # Poll the status endpoint until the indexing is finished.
-    poll_url = f"{status_endpoint}/{status_id}"
-    print("Polling indexing status...")
-    for attempt in range(60):  # adjust the number of retries as needed
-        status_resp = requests.get(poll_url)
-        status_resp.raise_for_status()
-        status = status_resp.json().get('runtimeStatus')
-        print(f"Status check {attempt+1}: {status}")
-        if status not in ["Pending", "Running", "Completed"]:
-            print(f"ERROR: Document indexing did not finish. Reason: {status_resp.json()}")
-            assert False, "Document indexing did not finish."
-        if status == "Completed":
-            print("Indexing completed successfully.")
-            break
+def eventually(check, timeout=600):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if check():
+            return
         time.sleep(5)
-    else:
-        print("ERROR: Document indexing did not finish within the expected time.")
-        assert False, "Document indexing did not finish within the expected time."
+    raise AssertionError("Expected Azure state was not observed before the deadline")
 
-    # Verify that the document exists in the AI search results.
-    print("Verifying document existence in AI search...")
-    search_resp = requests.get(search_endpoint, params={"q": "Elements of Contoso s implementation", "index_name": index_name})
-    search_resp.raise_for_status()
-    results = search_resp.json()
-    found = any(blob_name in doc.get("sourcepages", "").split("#")[0] for doc in results)
 
-    if found:
-        print("Document successfully found in AI search.")
-    else:
-        print("ERROR: Document not found in AI search.")
-        assert False, "Document not found in AI search."
+def main():
+    config = load()
+    scope = next(iter(json.loads(config["TENANT_SCOPES_JSON"]).values()))
+    root = scope["prefix"] + "integration/" + uuid.uuid4().hex + "/"
+    index = scope["indexes"][0]
+    base = f"https://{config['FUNCTION_APP_NAME']}.azurewebsites.net"
+    with (
+        DefaultAzureCredential() as credential,
+        httpx.Client(timeout=60) as client,
+        BlobServiceClient(
+            f"https://{config['SOURCE_STORAGE_ACCOUNT_NAME']}.blob.core.windows.net", credential
+        ) as blobs,
+    ):
+        container = blobs.get_container_client("source")
 
-    print("End-to-end document indexing test completed successfully.")
+        def headers():
+            return {
+                "Authorization": f"Bearer {credential.get_token('api://' + config['ENTRA_AUDIENCE'] + '/.default').token}"
+            }
 
-test_e2e_document_indexing()
+        def search(query):
+            result = client.get(
+                f"{base}/api/search", headers=headers(), params={"q": query, "index_name": index, "top": 50}
+            )
+            result.raise_for_status()
+            return result.json()
+
+        def reindex():
+            result = client.post(
+                f"{base}/api/index",
+                headers=headers(),
+                json={"prefix_list": [root], "index_name": index, "reconcile": True},
+            )
+            assert result.status_code == 202
+            url = base + result.json()["statusUrl"]
+
+            def complete():
+                response = client.get(url, headers=headers())
+                response.raise_for_status()
+                state = response.json()
+                assert state["runtimeStatus"] not in ("Failed", "Terminated")
+                if state["runtimeStatus"] == "Completed":
+                    assert state["output"]["failed"] == 0
+                    return True
+                return False
+
+            eventually(complete)
+
+        names = [root + "a/sample.pdf", root + "b/sample.pdf"]
+        data = (Path(__file__).parent / "sample.pdf").read_bytes()
+        try:
+            assert client.get(f"{base}/api/search", params={"q": "test"}).status_code in (401, 403)
+            for name in names:
+                container.upload_blob(name, data, overwrite=True)
+            reindex()
+            eventually(
+                lambda: set(names).issubset({doc["sourcefile"] for doc in search("Contoso implementation")})
+            )
+            denied = client.post(
+                f"{base}/api/index", headers=headers(), json={"prefix_list": ["other-tenant/"]}
+            )
+            assert denied.status_code == 403
+            container.delete_blob(names[0], delete_snapshots="include")
+            reindex()
+            eventually(
+                lambda: names[0] not in {doc["sourcefile"] for doc in search("Contoso implementation")}
+            )
+            assert names[1] in {doc["sourcefile"] for doc in search("Contoso implementation")}
+            print(
+                "Authenticated upload, full-path identity, hybrid retrieval, tenant isolation and deletion passed"
+            )
+        finally:
+            for name in names:
+                blob = container.get_blob_client(name)
+                if blob.exists():
+                    blob.delete_blob(delete_snapshots="include")
+
+
+if __name__ == "__main__":
+    main()

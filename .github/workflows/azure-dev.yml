@@ -1,80 +1,56 @@
-name: E2E Test (Deploys Infrastucture)
-# Run when commits are pushed to main
+name: Azure integration (explicit deployment)
 on:
   workflow_dispatch:
-  push:
-    # Run when commits are pushed to mainline branch (main or master)
-    # Set this to the mainline branch you are using
-    branches:
-      - main
-  pull_request:
-
-concurrency:
-  group: e2e-test
-  cancel-in-progress: false
-
-# Set up permissions for deploying with secretless Azure federated credentials
-# https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure?tabs=azure-portal%2Clinux#set-up-azure-login-with-openid-connect-authentication
+    inputs:
+      acknowledge_cost:
+        description: 'Provision temporary Azure resources and run integration tests'
+        type: boolean
+        required: true
+        default: false
 permissions:
-  id-token: write
   contents: read
-
-
+concurrency:
+  group: azure-integration
+  cancel-in-progress: false
 jobs:
-  build:
-    environment: 'test'
+  integration:
+    if: inputs.acknowledge_cost
+    environment: test
+    permissions:
+      id-token: write
+      contents: read
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      ENTRA_CLIENT_ID: ${{ vars.ENTRA_CLIENT_ID }}
+      AZURE_ENV_NAME: integration-${{ github.run_id }}
     steps:
-      - name: Add AZURE_ENV_NAME env property with commit short sha
-        run: echo "AZURE_ENV_NAME=test-`echo ${GITHUB_SHA} | cut -c1-8`-${{ github.run_number }}" >> $GITHUB_ENV
-      - name: Checkout
-        uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          python-version: '3.10' 
-      - name: Install azd
-        uses: Azure/setup-azd@v2
-      - name: Log in with Azure[azd] (Federated Credentials)
-        run: |
-          azd auth login `
-            --client-id "$Env:AZURE_CLIENT_ID" `
-            --federated-credential-provider "github" `
-            --tenant-id "$Env:AZURE_TENANT_ID"
-        shell: pwsh
-      - name: Provision Infrastructure
-        run: azd provision --no-prompt --no-state
-      - name: Log in with Azure[az] (Federated Credentials)
-        uses: azure/login@v2
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - uses: Azure/setup-azd@0b7e3a35ab00f2eee7080c845eb39c3f0ebfa553 # v2
+      - uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      - name: Deploy Application
-        run: azd deploy --no-prompt
-
-      - name: Set roles for service principal
-        run: ./scripts/roles.sh --no-prompt
-        env:
-          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-      
-      - name: Set environment variables from azd
-        run: |
-          echo "FUNCTION_APP_NAME=$(azd env get-value FUNCTION_APP_NAME)" >> $GITHUB_ENV
-          echo "SOURCE_STORAGE_ACCOUNT_NAME=$(azd env get-value SOURCE_STORAGE_ACCOUNT_NAME)" >> $GITHUB_ENV
-
-      - name: Install test dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r tests/e2e/requirements.txt
-
-      - name: Run end-to-end tests
-        run: python -u tests/e2e/test_e2e.py
-      - name: Remove infrastructure after test
+      - run: python -m pip install -r requirements-dev.txt
+      - run: azd auth login --client-id "$AZURE_CLIENT_ID" --federated-credential-provider github --tenant-id "$AZURE_TENANT_ID"
+      - run: azd env new "$AZURE_ENV_NAME" --no-prompt
+      - run: azd env set ENTRA_CLIENT_ID "$ENTRA_CLIENT_ID"
+      - run: azd provision --no-prompt
+      - name: Grant temporary test data permissions
+        run: python scripts/integration_roles.py
+      - run: azd deploy --no-prompt
+      - name: Run authenticated lifecycle integration tests
+        run: python tests/e2e/test_e2e.py
+      - name: Remove temporary infrastructure
         if: always()
-        run: azd down --purge --force
-
+        run: azd down --purge --force --no-prompt

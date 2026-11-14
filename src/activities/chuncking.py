@@ -1,37 +1,32 @@
+"""Legacy module spelling retained for deployment compatibility."""
+
+from contextlib import nullcontext
+
 from application.app import app
-from chonkie import SentenceChunker
-from typing import List, Dict
+from core.activity import safe_activity
+from core.chunking import chunk_document
+from core.config import ProcessingProfile
+from core.models import cached_artifact, enrich
+from core.storage import store
+
 
 @app.function_name(name="chunking")
-@app.activity_trigger(input_name="document")
-def chunking(document: Dict) -> List[str]:
-    chunker = SentenceChunker(
-        tokenizer="gpt2",
-        chunk_size=512,
-        chunk_overlap=128,
-        min_sentences_per_chunk=1
-    )
-    only_text_pages = [page for page in document["pages"]]
-    all_text = "".join(only_text_pages)
-    chunks = chunker.chunk(all_text)
-    chunks_with_page_numbers = []
-    for chunk in chunks:
-        chunks_with_page_numbers.append({
-            "filename": document["filename"],
-            "url": document["url"],
-            "text": chunk.text,
-            "start_page": get_page_number(chunk.start_index, only_text_pages),
-            "end_page": get_page_number(chunk.end_index, only_text_pages),
-            "start_index": chunk.start_index,
-            "end_index": chunk.end_index,
-            "token_count": chunk.token_count,
-        })
-    return chunks_with_page_numbers
+@app.activity_trigger(input_name="ref")
+@safe_activity
+def chunking(ref: dict) -> dict:
+    profile = ProcessingProfile.model_validate(ref["profile"])
+    storage = store()
 
-def get_page_number(position: int, pages: List[str]) -> int:
-    position -= 1
-    for page_number, page_content in enumerate(pages):
-        if position < len(page_content):
-            return page_number
-        position -= len(page_content)
-    raise ValueError("Position out of range")
+    def compute():
+        document = storage.read("artifacts", ref["artifact"])
+        if document is None:
+            raise ValueError("Extraction artifact is missing")
+        chunks = chunk_document(document, profile.chunking)
+        with storage.service_slot("enrichment") if profile.enrichment.enabled else nullcontext():
+            metadata = enrich(document["content"], profile)
+        return {"chunks": chunks, "metadata": metadata}
+
+    artifact = cached_artifact(
+        ref["tenant_id"], "chunks", [ref["artifact"], profile.fingerprint("chunking", "enrichment")], compute
+    )
+    return {**ref, "artifact": artifact}

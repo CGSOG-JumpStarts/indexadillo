@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{host}}/api/status/:id?show_history=True
+  url: {{host}}/api/status/:id
   body: none
-  auth: none
+  auth: inherit
 }
 
 params:query {
-  show_history: True
+  ~show_history: true
   ~show_input: True
   ~show_history_output: True
 }
