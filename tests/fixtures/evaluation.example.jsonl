@@ -1,0 +1,2 @@
+{"id":"contract-termination","query":"How much notice is required to terminate the agreement?","index_name":"documents-v2","relevant_sourcefiles":["TENANT/contracts/agreement.pdf"],"expected_pages":{"TENANT/contracts/agreement.pdf":[3]},"forbidden_sourcefiles":["OTHER-TENANT/contracts/agreement.pdf"]}
+{"id":"table-detail","query":"What is the maximum permitted recovery time for the premium service?","index_name":"documents-v2","relevant_sourcefiles":["TENANT/policies/service-levels.pdf"],"expected_pages":{"TENANT/policies/service-levels.pdf":[2]}}

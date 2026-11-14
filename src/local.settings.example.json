@@ -1,0 +1,17 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AUTH_MODE": "local",
+    "LOCAL_SCOPE_KEY": "local",
+    "TENANT_SCOPES_JSON": "{\"local\":{\"tenant_id\":\"local\",\"prefix\":\"local/\",\"indexes\":[\"documents-v2\"]}}",
+    "SOURCE_STORAGE_ACCOUNT_NAME": "replace-with-development-account",
+    "ARTIFACT_STORAGE_ACCOUNT_NAME": "replace-with-development-artifact-account",
+    "SEARCH_SERVICE_ENDPOINT": "https://replace.search.windows.net",
+    "AZURE_OPENAI_ENDPOINT": "https://replace.openai.azure.com",
+    "DI_ENDPOINT": "https://replace.cognitiveservices.azure.com",
+    "RECONCILIATION_SCHEDULE": "0 0 */6 * * *",
+    "AzureWebJobs.index_event_grid.Disabled": "true"
+  }
+}

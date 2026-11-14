@@ -5,12 +5,12 @@ meta {
 }
 
 get {
-  url: {{host}}/api/search?q=test&index_name=default-index
+  url: {{host}}/api/search?q=test&index_name=documents-v2
   body: none
-  auth: none
+  auth: inherit
 }
 
 params:query {
   q: test
-  index_name: default-index
+  index_name: documents-v2
 }

@@ -1,162 +1,153 @@
-<!--
----
-page_type: sample
-description: Indexadillo helps you push data to Azure AI Search in a scalable, observable way. Instead of using a pull-based DSL approach, this solution uses Azure Durable Functions to handle everything from parsing your documents to uploading embeddings.
-languages:
-- python
-products:
-- ai-services
-- azure-app-service
-- azure-cognitive-search
-- azure-event-grid
-- azure-openai
-name: Indexadillo - Index your documents using Durable Functions and AI Search for RAG applications.
-urlFragment: template
----
--->
-
-![Indexadillo Mascot](assets/indexadillo-feature.png)
+![Indexadillo](assets/indexadillo-feature.png)
 
 # Indexadillo
 
-[![Open in GitHub Codespaces](https://img.shields.io/static/v1?style=for-the-badge&label=GitHub+Codespaces&message=Open&color=blue&logo=github)](https://codespaces.new/Azure-Samples/indexadillo?quickstart=1)
-[![.github/workflows/azure-dev.yml](https://github.com/Azure-Samples/indexadillo/actions/workflows/azure-dev.yml/badge.svg)](https://github.com/Azure-Samples/indexadillo/actions/workflows/azure-dev.yml)
+Versioned document ingestion and authenticated hybrid retrieval on Azure. Durable
+Functions coordinates extraction, chunking, embeddings and Azure AI Search while
+Blob Storage holds processing artifacts and recoverable document manifests.
 
-Indexadillo helps you push data to Azure AI Search in a scalable, observable way. Instead of using a pull-based DSL
-approach (which can be tricky to debug and customize), this solution uses Azure Durable Functions to handle everything from
-parsing your documents to uploading embeddings—without restarting at every little hiccup.
+The November 2026 modernization retains the custom push pipeline and adds source
+version checks, document replacement/deletion, tenant and group authorization,
+hybrid queries, authenticated citations, model profiles, bounded processing,
+private-network production infrastructure and evaluation tooling.
 
-![Demo of the deployed sample](assets/indexadillo_demo.gif)
+```mermaid
+flowchart LR
+  S[Source Blob Storage] --> E[Event Grid]
+  E --> Q[Managed-identity Storage Queue]
+  Q --> D[Durable Functions]
+  D --> P[Layout / optional Content Understanding]
+  P --> C[Section-aware chunks]
+  C --> M[Azure OpenAI embeddings]
+  M --> I[Azure AI Search]
+  D <--> A[Artifacts, manifests and leases]
+  U[Authenticated client] --> API[Entra-authorized API]
+  API --> I
+  API --> V[Current source / permission checks]
+  V --> S
+```
 
-## What’s Inside?
+## What changed
 
-![A workflow diagram shows two data sources labeled “HTTP” and “BLOB” flowing into a “Documents” box. From there, four steps are repeated for each document: “Cracking,” “Chunking,” “Embedding,” and “Upload.” In the diagram, “Cracking” and “Chunking” are highlighted in green to indicate they have started, while “Embedding” and “Upload” are gray to show they haven’t begun yet. A small note above the arrow from “Chunking” to “Embedding” reads “for each document,” emphasizing that all steps happen for each file.](assets/workflow.png)
+* **Secure API:** signed Entra access tokens, app roles and server-controlled source/
+  index scope. Search applies tenant/group filters and revalidates source versions
+  and permissions before returning text. Caller-supplied identity headers are not
+  trusted. Citation downloads use the same authorization.
+* **Correct document lifecycle:** full-path document identity; deterministic
+  generation keys; recoverable pending manifests; obsolete-chunk removal; deletion
+  and periodic reconciliation; stale/reordered events cannot simply replace the
+  current source version.
+* **Bounded durable processing:** history carries references, not document bodies,
+  vectors or SAS tokens. Activities use content caches, resumable embedding batches,
+  renewable leases and shared downstream concurrency limits.
+* **Measured retrieval:** keyword/vector/hybrid modes with optional semantic reranking,
+  preserved source spans, scalar/binary vector compression and labeled evaluation.
+* **Model evolution:** one validated YAML profile coordinates extraction, chunking,
+  embedding dimensions and index schema. The baseline remains
+  `text-embedding-3-large`. Optional Azure v1 Responses metadata enrichment and
+  GA Content Understanding are configurable and disabled by default.
+* **Deployment separation:** runtime identities cannot administer Search schemas.
+  CLI tools provision physical indexes, maintain a fingerprint registry, and record
+  alias cutovers for rollback. Production defaults include private networking,
+  ZRS, three Search replicas and zone-redundant Flex hosting.
 
-- **Orchestrators and Activities:** Each document gets its own sub-orchestrator, so failures don't bring everything down.
-- **Blob Storage Input:** Drop your PDFs into blob storage, and we’ll automatically pick them up.
-- **Document Intelligence:** Extract text from documents before sending them on.
-- **“Chonkie” for Chunking:** Break down big files into smaller pieces for easier processing.
-- **OpenAI Text-003-Large Embeddings:** Transform your text into embeddings for full-text AI search.
-- **Azure AI Search Upload:** All neatly sent to your search index.
-- **Scalability:** Process documents in parallel without losing track, thanks to continuation tokens and Durable Functions’ built-in retries.
+Search replacement is not a multi-document transaction. The implementation and
+tests do not establish a production SLA or live model-quality improvement. Review
+[operations](docs/operations.md) for consistency, limits and recovery behavior.
 
-## Getting Started
+## Local checks
 
-### Quick Start & Prerequisites
-1. **Environment Setup**
-   - **Azure Account:** Ensure you have an active Azure subscription.
-   - **Tools:** Install [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) and
-     [azd](https://github.com/azure/azure-dev).
-      > Not needed for the dev container setup.
-   - **Dev Environment:**
-      - Kick things off with VS Code and the provided dev container.
-      - Or use codespaces [![Open in GitHub Codespaces](https://img.shields.io/static/v1?style=for-the-badge&label=GitHub+Codespaces&message=Open&color=blue&logo=github)](https://codespaces.new/Azure-Samples/indexadillo?quickstart=1)
+Python 3.12 is used by the runtime, dev container and CI.
 
-2. **Deploy Your Infrastructure**
-   - Create a new environment:
-     ```bash
-     azd env new indexadillo-dev
-     ```
-   - Authenticate with Azure:
-     ```bash
-     azd auth login
-     az login
-     ```
-   - Provision your resources:
-     ```bash
-     azd up
-     ```
-     This command sets up the necessary infrastructure (storage, function app, AI Search, etc.). Follow the prompts to select a subscription and region (Sweden Central is recommended).
+```sh
+python3.12 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+ruff check src scripts tests
+ruff format --check src scripts tests
+pytest
+az bicep build --file infra/main.bicep --outfile /tmp/indexadillo.json
+python scripts/check_infrastructure.py /tmp/indexadillo.json
+```
 
-3. **Detailed Setup (Optional)**
-   - **Roles & Permissions:** Run the roles script to assign necessary permissions:
-     ```bash
-     ./scripts/roles.sh
-     ```
-   - **Document Upload:** Place your PDFs into the `source` container within your storage account.
-   - **Monitoring:** 
-     - Check the processing in Application Insights:
-       ![App Insights](assets/application_insights.png)
-     - Or view the function app’s invocations by selecting the `index_event_grid` function and switching to the "Invocations" tab.
-   - **Accessing Search:** Use the AI Search portal or the provided [Bruno collection](https://www.usebruno.com/) in the `/http` folder. (Don’t forget to update the `host` variable in the collection settings with your function app name.)
-   - **Reindexing:** Trigger a full reindex via the `/index` endpoint. This creates a new index (defaulted to `other-index`, can
-     be changed in the parameters) for the blobs. You can adjust the prefixes to index specific folders, and the endpoint returns an ID to track progress
-     via `/status/:id`.
+The default suite uses mocked Azure boundaries and a bundled, checksum-verified
+tokenizer vocabulary. It does not require Azure credentials or call a model.
+`requirements.txt` files are resolved locks; direct dependencies live in the
+corresponding `.in` files. Regenerate both locks together with `uv pip compile`.
 
-### Local Debugging
+## Get started on Azure
 
-1. **Setup `local.settings.json`**  
-   Place the following `local.settings.json` file in the `src` folder:
+1. Configure an Entra API application and role assignments using
+   [deployment.md](docs/deployment.md).
+2. Select a compatible region and obtain the required model quota.
+3. Activate the Python environment, authenticate Azure CLI/azd, create an azd
+   environment, set `ENTRA_CLIENT_ID`, and run `azd up`.
+4. Ensure the deployment identity has the scoped Search/schema and artifact data
+   permissions needed by the postdeploy index provisioner.
+5. Upload files to the `source` container beneath the configured tenant prefix.
+6. Search or submit a reindex through the authenticated API.
 
-   ```json
-   {
-     "IsEncrypted": false,
-     "Values": {
-       "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-       "SOURCE_STORAGE_ACCOUNT_NAME": "<source_storage_account_name>",
-       "DI_ENDPOINT": "<di_endpoint>",
-       "FUNCTIONS_WORKER_RUNTIME": "python",
-       "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
-       "AZURE_OPENAI_ENDPOINT": "<azure_openai_endpoint>",
-       "SEARCH_SERVICE_ENDPOINT": "<search_service_endpoint>"
-     }
-   }
-   ```
+```sh
+az login
+azd auth login
+azd env new indexadillo-dev
+azd env set ENTRA_CLIENT_ID YOUR_API_APPLICATION_CLIENT_ID
+azd up
+```
 
-2. **Configure Endpoints**  
-   Fill out `DI_ENDPOINT`, `AZURE_OPENAI_ENDPOINT`, `SOURCE_STORAGE_ACCOUNT_NAME`, and `SEARCH_SERVICE_ENDPOINT` with the correct endpoints from the `.env` file located at `.azure/indexadillo-dev/.env`.
+For local Functions debugging, copy `src/local.settings.example.json` to
+`src/local.settings.json`, configure development Azure endpoints, start Azurite,
+and run `func start` from `src`. Local auth bypass is explicit and rejected when
+the app runs on Azure. Keep local settings untracked. The local source/AI services
+still use Azure resources and your developer identity.
 
-3. **Start Azurite Service**  
-   Launch the Azurite service by using the **Azurite: Start** command from the VS Code command palette.
+## API
 
-4. **Set Up a Virtual Environment (if not using Dev Containers)**  
-   If you're not using a VS Code dev container, you need to manually set up a Python virtual environment:
+All routes require an appropriate bearer token in deployed environments.
 
-   ```sh
-   python3 -m venv src/.venv
-   ```
+| Route | Role | Behavior |
+|---|---|---|
+| `POST /api/index` | Indexer | Bounded scoped job; HTTP 202 with `{id,statusUrl}` and Location |
+| `GET /api/status/{id}` | Indexer | Scoped progress/results; protected history requires Operator |
+| `GET /api/search?q=...` | Reader | Hybrid retrieval by default; bounded result count |
+| `GET /api/document/{id}` | Reader | Source download after index and current-source authorization |
+| `GET /api/orchestration_health` | Operator | Durable client health probe |
 
-   Then, activate it:
+An Operator is authorized for every API role within their configured scope.
+`GET /api/status` no longer enumerates every orchestration. Index/source selection
+is constrained by `TENANT_SCOPES_JSON`, not trusted from a request body.
 
-   - **Linux/macOS:**
-     ```sh
-     source src/.venv/bin/activate
-     ```
-   - **Windows (PowerShell):**
-     ```powershell
-     src\.venv\Scripts\Activate
-     ```
+```json
+{
+  "prefix_list": ["YOUR-TENANT-PREFIX/contracts/"],
+  "index_name": "documents-v2",
+  "reconcile": true
+}
+```
 
-   Also, make sure you have the [Azure Functions Core Tools installed](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=linux%2Cisolated-process%2Cnode-v4%2Cpython-v2%2Chttp-trigger%2Ccontainer-apps&pivots=programming-language-python#install-the-azure-functions-core-tools).
-   
-6. **Run the Debugger**
-   In the VS Code debug section, select and run the **Attach to Python Function** configuration.
+An empty prefix `""` means the caller's configured tenant root. A Completed job
+can contain failed documents; inspect the result counts and manifest ledger.
 
-## Resource Architecture
+## Repository map
 
-Below is a diagram of the Azure resources that get deployed when you run `azd up`. Everything is organized under a single
-resource group:
+| Path | Purpose |
+|---|---|
+| `src/core/` | Authentication, profiles, storage/leases, extraction/model adapters, Search and lifecycle |
+| `src/activities/`, `src/orchestrators/` | Durable activity boundaries and bounded orchestration |
+| `src/profiles/` | Versioned processing profiles |
+| `infra/` | Parameterized dev/prod resources, networking, scoped roles, events and monitoring |
+| `scripts/manage_search.py` | Index administration, alias cutover and optional GA knowledge binding |
+| `scripts/evaluation/` | Source-labeled retrieval evaluation |
+| `tests/unit/` | Offline correctness and request-contract tests |
+| `tests/e2e/` | Explicit live-Azure lifecycle checks |
 
-![Resource Diagram](assets/indexadillo-resources.png)
-
-- **Storage Account** (with `source` container): Where you drop PDFs to be processed.
-- **Event Grid**: Sends notifications to the function app whenever a new file is uploaded.
-- **Function App**: Hosts the Durable Functions that orchestrate parsing, embedding, indexing and serving the http endpoints.
-- **App Service Plan** (Flex Consumption Plan): Underlying hosting model for the Function App.
-- **Document Intelligence**: Extracts text from PDFs or other document types (if implemented).
-- **Azure OpenAI Embeddings**: Converts text to vector embeddings for advanced AI search.
-- **AI Search**: Stores and queries your indexed documents, with a default index out of the box.
-- **Application Insights**: Collects telemetry, logs, and performance metrics.
-
-Feel free to customize or rename these resources to suit your workflow. For more details on each service:
-- [Azure Cognitive Services Document Intelligence](https://learn.microsoft.com/azure/ai-services/document-intelligence/)
-- [Azure OpenAI Service](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Azure AI Search](https://learn.microsoft.com/azure/search/search-what-is-azure-search)
-- [Application Insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview)
-
-
-## Contributing
-Feel free to open issues or submit pull requests if you’d like to help out. All improvements are welcome—whether that’s more chunking strategies, extra integration tests, or better docs.
+Read [deployment](docs/deployment.md), [operations](docs/operations.md),
+[evaluation](docs/evaluation.md) and [migration/rollback](docs/migration.md) before
+production promotion. The GitHub live integration workflow runs only through an
+explicit dispatch and provisions billable temporary resources. Production private
+endpoints require a connected runner.
 
 ## License
-[MIT License](LICENSE)
+
+[MIT](LICENSE.md). The bundled tokenizer vocabulary includes its own
+[provenance notice](src/tokenizer/NOTICE.md).

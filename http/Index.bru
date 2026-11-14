@@ -7,12 +7,12 @@ meta {
 post {
   url: {{host}}/api/index
   body: json
-  auth: none
+  auth: inherit
 }
 
 body:json {
   {
     "prefix_list": [""],
-    "index_name": "other-index"
+    "index_name": "documents-v2"
   }
 }
